@@ -105,6 +105,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <button class="tab active" onclick="switchTab('dash',this)">Dashboard</button>
   <button class="tab" onclick="switchTab('chart',this)">Graf</button>
   <button class="tab" onclick="switchTab('log',this)">Log</button>
+  <button class="tab" onclick="switchTab('settings',this)">Postavke</button>
 </div>
 
 <div id="pane-dash" class="pane active">
@@ -249,14 +250,119 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   </div>
 </div>
 
+
+<!-- SETTINGS TAB -->
+<div id="pane-settings" class="pane">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0">
+
+  <!-- Kalibracija -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:14px">KALIBRACIJA SONDI</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div style="font-size:11px;color:var(--ferm);margin-bottom:6px">Fermentacija offset (°C)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cbtn" style="border-color:rgba(0,212,255,.3);color:var(--ferm)" onclick="adjSetting('ferm','calOffset',-0.1)">-</button>
+          <span class="cval" id="f-cal">0.0</span>
+          <button class="cbtn" style="border-color:rgba(0,212,255,.3);color:var(--ferm)" onclick="adjSetting('ferm','calOffset',0.1)">+</button>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Sirova: <span id="f-raw">--.-</span>C</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--keezer);margin-bottom:6px">Keezer offset (°C)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cbtn" style="border-color:rgba(0,240,160,.3);color:var(--keezer)" onclick="adjSetting('keezer','calOffset',-0.1)">-</button>
+          <span class="cval" id="k-cal">0.0</span>
+          <button class="cbtn" style="border-color:rgba(0,240,160,.3);color:var(--keezer)" onclick="adjSetting('keezer','calOffset',0.1)">+</button>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">Sirova: <span id="k-raw">--.-</span>C</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test mod -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:14px">TEST MOD</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div style="font-size:11px;color:var(--ferm);margin-bottom:6px">Fermentacija</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="f-test-btn" class="tbtn" onclick="toggleTestMode('ferm')" style="color:var(--ferm)">TEST OFF</button>
+          <button class="cbtn" style="border-color:rgba(0,212,255,.3);color:var(--ferm)" onclick="adjSetting('ferm','testTemp',-0.5)">-</button>
+          <span class="cval" id="f-test-temp">20.0</span>
+          <button class="cbtn" style="border-color:rgba(0,212,255,.3);color:var(--ferm)" onclick="adjSetting('ferm','testTemp',0.5)">+</button>
+          <span style="font-size:9px;color:var(--muted)">C</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--keezer);margin-bottom:6px">Keezer</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="k-test-btn" class="tbtn" onclick="toggleTestMode('keezer')" style="color:var(--keezer)">TEST OFF</button>
+          <button class="cbtn" style="border-color:rgba(0,240,160,.3);color:var(--keezer)" onclick="adjSetting('keezer','testTemp',-0.5)">-</button>
+          <span class="cval" id="k-test-temp">5.0</span>
+          <button class="cbtn" style="border-color:rgba(0,240,160,.3);color:var(--keezer)" onclick="adjSetting('keezer','testTemp',0.5)">+</button>
+          <span style="font-size:9px;color:var(--muted)">C</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zastitne postavke -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:14px">ZASTITNE POSTAVKE</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:11px;color:var(--warn);margin-bottom:6px">Compressor delay (min)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cbtn" style="border-color:rgba(245,158,11,.3);color:var(--warn)" onclick="adjGlobal('compDelay',-0.5)">-</button>
+          <span class="cval" id="g-comp">3.0</span>
+          <button class="cbtn" style="border-color:rgba(245,158,11,.3);color:var(--warn)" onclick="adjGlobal('compDelay',0.5)">+</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--danger);margin-bottom:6px">Safe mode limit (SP+X°C)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cbtn" style="border-color:rgba(239,68,68,.3);color:var(--danger)" onclick="adjGlobal('safeLimit',-0.5)">-</button>
+          <span class="cval" id="g-safe">5.0</span>
+          <button class="cbtn" style="border-color:rgba(239,68,68,.3);color:var(--danger)" onclick="adjGlobal('safeLimit',0.5)">+</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--cool);margin-bottom:6px">Rise rate alarm (°C/min)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cbtn" style="border-color:rgba(56,189,248,.3);color:var(--cool)" onclick="adjGlobal('riseRate',-0.1)">-</button>
+          <span class="cval" id="g-rise">0.5</span>
+          <button class="cbtn" style="border-color:rgba(56,189,248,.3);color:var(--cool)" onclick="adjGlobal('riseRate',0.1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:14px">TELEGRAM NOTIFIKACIJE</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.8">
+      Bot: <span style="color:var(--text)">ferment_ctrl_bot_mastermixx_bot</span><br>
+      Status: <span id="tg-status" style="color:var(--ok)">Aktivan</span>
+    </div>
+    <button onclick="sendCmd({cmd:'testTelegram',sec:'ferm'})" style="padding:8px 16px;border-radius:20px;border:1px solid var(--ok);background:rgba(34,197,94,.15);color:var(--ok);cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:1px">
+      Posalji test poruku
+    </button>
+  </div>
+
+</div>
+</div>
+
 <script>
 var FIREBASE = 'https://fermentationcontroller-default-rtdb.europe-west1.firebasedatabase.app';
 var MAX_HIST = 300;
 var st = {
-  ferm:   {en:true, temp:null, sp:18, hy:0.5, al:2, relay:false, alarm:false, heat:true},
-  keezer: {en:true, temp:null, sp:5,  hy:0.3, al:2, relay:false, alarm:false, safe:false, delay:false}
+  ferm:   {en:true, temp:null, rawTemp:null, sp:18, hy:0.5, al:2, calOffset:0, testMode:false, testTemp:20, relay:false, alarm:false, heat:true},
+  keezer: {en:true, temp:null, rawTemp:null, sp:5,  hy:0.3, al:2, calOffset:0, testMode:false, testTemp:5, relay:false, alarm:false, safe:false, delay:false},
+  global: {compDelay:3, safeLimit:5, riseRate:0.5}
 };
 var fHist=[], kHist=[], relayLog=[], pollTimer=null;
+var st_global={compDelay:3,safeLimit:5,riseRate:0.5};
 var pendingMode = null;
 var lastUserInput = 0; // timestamp zadnjeg korisničkog unosa
 var USER_INPUT_BLOCK = 15000; // 15 sekundi blokade
@@ -302,7 +408,7 @@ async function poll(){
       if(st.ferm.relay!==f.relay) addLog('Ferm relay '+(f.relay?'ON':'OFF'),'Fermentacija','R1',f.relay?'#ff6b35':'#3d5470');
     }
     var blocked = (Date.now() - lastUserInput) < USER_INPUT_BLOCK;
-    Object.assign(st.ferm,{en:f.enabled,temp:f.temp,
+    Object.assign(st.ferm,{en:f.enabled,temp:f.temp,rawTemp:f.rawTemp||f.temp,calOffset:f.calOffset||0,testMode:f.testMode||false,testTemp:f.testTemp||20,
       sp:  blocked ? st.ferm.sp  : (f.sp   || st.ferm.sp),
       hy:  blocked ? st.ferm.hy  : (f.hyst || st.ferm.hy),
       al:  blocked ? st.ferm.al  : (f.alarm|| st.ferm.al),
@@ -316,14 +422,18 @@ async function poll(){
       if(kHist.length>MAX_HIST) kHist.shift();
       if(st.keezer.relay!==k.relay) addLog('Keezer relay '+(k.relay?'ON':'OFF'),'Keezer','R2',k.relay?'#00f0a0':'#3d5470');
     }
-    Object.assign(st.keezer,{en:k.enabled,temp:k.temp,
+    Object.assign(st.keezer,{en:k.enabled,temp:k.temp,rawTemp:k.rawTemp||k.temp,calOffset:k.calOffset||0,testMode:k.testMode||false,testTemp:k.testTemp||5,
       sp:  blocked ? st.keezer.sp : (k.sp   || st.keezer.sp),
       hy:  blocked ? st.keezer.hy : (k.hyst || st.keezer.hy),
       al:  blocked ? st.keezer.al : (k.alarm|| st.keezer.al),
       relay:k.relay||false, alarm:k.alarmActive||false,
       safe:k.safeMode||false, delay:k.compDelay||false});
   }
+  if(d.compDelayMin) st.global.compDelay=d.compDelayMin;
+  if(d.safeModeLimit) st.global.safeLimit=d.safeModeLimit;
+  if(d.riseRateLimit) st.global.riseRate=d.riseRateLimit;
   updateUI();
+  updateSettingsUI();
   drawSpark('sf', fHist, '#00d4ff');
   drawSpark('sk', kHist, '#00f0a0');
   if(g('pane-chart').classList.contains('active')) drawMainChart();
@@ -522,6 +632,64 @@ function exportCSV(){
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='fermentation_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
+}
+
+
+function adjSetting(sec, param, delta){
+  lastUserInput=Date.now();
+  var s=st[sec];
+  var lim={calOffset:[-5,5],testTemp:[-10,50]};
+  var mn=lim[param][0], mx=lim[param][1];
+  var val=Math.round(Math.min(mx,Math.max(mn,s[param]+delta))*10)/10;
+  s[param]=val;
+  sendCmd({cmd:param,sec:sec,val:val});
+  updateSettingsUI();
+}
+
+function adjGlobal(param, delta){
+  lastUserInput=Date.now();
+  var lim={compDelay:[0.5,30],safeLimit:[1,20],riseRate:[0.1,5]};
+  var mn=lim[param][0], mx=lim[param][1];
+  var cur=param==='compDelay'?st.global.compDelay:param==='safeLimit'?st.global.safeLimit:st.global.riseRate;
+  var val=Math.round(Math.min(mx,Math.max(mn,cur+delta))*10)/10;
+  if(param==='compDelay') st.global.compDelay=val;
+  else if(param==='safeLimit') st.global.safeLimit=val;
+  else st.global.riseRate=val;
+  sendCmd({cmd:param,sec:'keezer',val:val});
+  updateSettingsUI();
+}
+
+function toggleTestMode(sec){
+  lastUserInput=Date.now();
+  st[sec].testMode=!st[sec].testMode;
+  sendCmd({cmd:'testMode',sec:sec,val:st[sec].testMode});
+  updateSettingsUI();
+  updateUI();
+}
+
+function updateSettingsUI(){
+  var f=st.ferm, k=st.keezer, g=st.global;
+  if(document.getElementById('f-cal')){
+    document.getElementById('f-cal').textContent=f.calOffset.toFixed(1);
+    document.getElementById('k-cal').textContent=k.calOffset.toFixed(1);
+    document.getElementById('f-raw').textContent=f.rawTemp!==null?f.rawTemp.toFixed(2):'--.-';
+    document.getElementById('k-raw').textContent=k.rawTemp!==null?k.rawTemp.toFixed(2):'--.-';
+    document.getElementById('f-test-temp').textContent=f.testTemp.toFixed(1);
+    document.getElementById('k-test-temp').textContent=k.testTemp.toFixed(1);
+    var ftb=document.getElementById('f-test-btn');
+    ftb.textContent=f.testMode?'TEST ON':'TEST OFF';
+    ftb.className='tbtn'+(f.testMode?' on':'');
+    ftb.style.color=f.testMode?'#00d4ff':'#3d5470';
+    var ktb=document.getElementById('k-test-btn');
+    ktb.textContent=k.testMode?'TEST ON':'TEST OFF';
+    ktb.className='tbtn'+(k.testMode?' on':'');
+    ktb.style.color=k.testMode?'#00f0a0':'#3d5470';
+    if(g){
+      document.getElementById('g-comp').textContent=g.compDelay.toFixed(1);
+      document.getElementById('g-safe').textContent=g.safeLimit.toFixed(1);
+      document.getElementById('g-rise').textContent=g.riseRate.toFixed(1);
+    }
+  }
 }
 
 function switchTab(name, btn){
