@@ -2,16 +2,16 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fermentation + Keezer Controller</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.0/babel.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;background:#080d12">
+<body style="margin:0;padding:0;background:#080d12">
 <div id="root"></div>
-<script type="text/babel">
+<script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useCallback } = React;
 
 const C = {
@@ -1122,8 +1122,7 @@ function FermentationController() {
 }
 
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(React.createElement(FermentationController));
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(FermentationController));
 </script>
 </body>
 </html>
