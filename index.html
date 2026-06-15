@@ -528,9 +528,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 <script>
 // ── Config ───────────────────────────────────────────────────────
 var FB = 'https://fermentationcontroller-default-rtdb.europe-west1.firebasedatabase.app';
-var TG_TOKEN = '8610432044:AAH-UfalE2aHdZEOIaoOPWbgyYBx5RMzUiE';
-var TG_CHAT  = '6964968288';
+var TG_TOKEN = '';
+var TG_CHAT  = '';
 var MAX_HIST = 300;
+
+// Učitaj config s Firebase (token nije u source kodu)
+async function loadConfig(){
+  var config = await fbGet('/config');
+  if (config) {
+    TG_TOKEN = config.tg_token || '';
+    TG_CHAT  = config.tg_chat  || '';
+  }
+}
 
 // ── State ────────────────────────────────────────────────────────
 var st = {
@@ -1187,8 +1196,10 @@ function switchTab(name, btn){
 }
 
 // ── Init ─────────────────────────────────────────────────────────
-poll();
-setInterval(poll, 3000);
+loadConfig().then(function(){
+  poll();
+  setInterval(poll, 3000);
+});
 window.addEventListener('resize', function(){
   if(g('pane-chart').classList.contains('active')) drawMainChart();
 });
