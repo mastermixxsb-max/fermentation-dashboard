@@ -1522,7 +1522,7 @@ function toggleObsMode(){
     obsRiseRates = [];
     obsPullRates = [];
     addLog('Observation mod UKLJUČEN — relaji blokirani','Keezer','OBS','#f59e0b');
-    sendTelegram('obs_start','📊 Observation mod uključen — učim keezer profil');
+    sendTelegram('obs_start','📊 Observation mod ukljucen - ucim keezer profil');
     fbSet('/settings/obsMode', true);
   } else {
     addLog('Observation mod ISKLJUČEN','Keezer','OBS','#3d5470');
@@ -1671,21 +1671,16 @@ function saveObsProfile(){
   };
   fbSet('/keezer_profile', profile);
   addLog('Keezer profil spremljen: '+obsCycles.length+' ciklusa, rise='+avgRise.toFixed(3)+'°/min','Keezer','OBS','#f59e0b');
-  sendTelegram('obs_done','📊 Keezer profil naučen!
-'+obsCycles.length+' ciklusa
-Rise: '+avgRise.toFixed(3)+'°/min
-Pull-down: '+avgPull.toFixed(3)+'°/min');
+  sendTelegram('obs_done','📊 Keezer profil naučen! '+obsCycles.length+' ciklusa | Rise: '+avgRise.toFixed(3)+'°/min | Pull-down: '+avgPull.toFixed(3)+'°/min');
 }
 
 function exportObsProfile(){
-  var csv = 'OnTs,OffTs,DurSec,MinTemp,MaxTemp,PullRate,RiseRate
-';
+  var csv = 'OnTs,OffTs,DurSec,MinTemp,MaxTemp,PullRate,RiseRate\n';
   obsCycles.forEach(function(c){
     csv += new Date(c.onTs).toLocaleString('hr-HR')+','+
            new Date(c.offTs).toLocaleString('hr-HR')+','+
            Math.round(c.durSec)+','+c.minTemp.toFixed(2)+','+c.maxTemp.toFixed(2)+','+
-           c.pullRate.toFixed(4)+','+c.riseRate.toFixed(4)+'
-';
+           c.pullRate.toFixed(4)+','+c.riseRate.toFixed(4)+'\n';
   });
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
