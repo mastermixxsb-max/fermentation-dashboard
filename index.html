@@ -23,18 +23,12 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow-x:hidden}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
-
-/* HEADER */
-.header{
-  background:linear-gradient(180deg,#0d1a26,var(--bg));
-  border-bottom:1px solid var(--border);
-  padding:12px 16px;
-  display:flex;justify-content:space-between;align-items:center;
-  flex-wrap:wrap;gap:8px;
-  position:sticky;top:0;z-index:100;
-}
+.header{background:linear-gradient(180deg,#0d1a26,var(--bg));border-bottom:1px solid var(--border);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:100;}
 .title{font-family:var(--head);font-size:18px;font-weight:700}
 .header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* DATETIME u headeru */
+.header-clock{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-align:right;line-height:1.5}
+.header-clock .htime{color:var(--text);font-size:13px;letter-spacing:2px}
 .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:all .5s;flex-shrink:0}
 .conn-dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .conn-dot.err{background:var(--danger);box-shadow:0 0 8px var(--danger)}
@@ -44,20 +38,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .safe-banner.show{display:flex}
 .hbtn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:10px;transition:.2s}
 .hbtn:hover{color:var(--text);border-color:var(--text)}
-
 /* TABS */
 .tabs{display:flex;gap:2px;padding:10px 16px 0;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tab{padding:7px 14px;border-radius:10px 10px 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:1px;white-space:nowrap;flex-shrink:0}
 .tab.active{border-color:var(--border);border-bottom:1px solid var(--bg);background:var(--bg);color:var(--text)}
 .pane{display:none;padding:14px;animation:fadeIn .3s ease}
 .pane.active{display:block}
-
-/* CARDS GRID */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:640px){.grid2{grid-template-columns:1fr}}
 .span2{grid-column:1/-1}
-
-/* SECTION CARD */
 .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;transition:all .4s}
 .card.ferm-on{border-color:rgba(0,212,255,.4);box-shadow:0 0 20px rgba(0,212,255,.07)}
 .card.keezer-on{border-color:rgba(0,240,160,.4);box-shadow:0 0 20px rgba(0,240,160,.07)}
@@ -89,7 +78,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .cval{min-width:34px;text-align:center;font-size:11px}
 .cbtn{width:22px;height:22px;border-radius:4px;font-size:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;transition:.15s;flex-shrink:0}
 .cbtn:hover{filter:brightness(1.3)}
-
+/* FERM START/STOP BANNER */
+.ferm-session-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#060b11;border-radius:10px;border:1px solid var(--border);flex-wrap:wrap;gap:6px}
+.ferm-session-info{font-size:9px;color:var(--muted);letter-spacing:1px}
+.ferm-session-info span{color:var(--ferm)}
+.btn-start-ferm{padding:4px 14px;border-radius:20px;border:1px solid var(--ferm);background:rgba(0,212,255,.15);color:var(--ferm);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:1px;transition:.2s}
+.btn-stop-ferm{padding:4px 14px;border-radius:20px;border:1px solid var(--danger);background:rgba(239,68,68,.15);color:var(--danger);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:1px;transition:.2s}
 /* RELAY OVERVIEW */
 .rov{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .rovt{font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:10px}
@@ -100,23 +94,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .rn2{font-size:9px;letter-spacing:1px}
 .rd{width:7px;height:7px;border-radius:50%;background:#1a2a3a;transition:all .3s}
 .rs{font-size:15px;font-family:var(--head);font-weight:700;color:var(--muted);transition:color .3s;margin-top:3px}
-
-/* CHART */
 .chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 14px 10px;margin-bottom:12px}
 .chart-title{font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:10px}
-
-/* STATS */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat-card{background:var(--panel);border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
 .stat-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;margin-top:8px}
 .stat-k{font-size:8px;color:var(--muted)}
 .stat-v{font-size:14px;font-family:var(--head);font-weight:700}
-
-/* LOG */
 .log-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .log-box{height:220px;overflow-y:auto;background:#060a0f;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:9px;line-height:1.9;margin-top:8px}
-
-/* SETTINGS */
 .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:500px){.set-grid{grid-template-columns:1fr}}
 .set-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
@@ -125,10 +111,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .set-lbl{font-size:10px;margin-bottom:4px}
 .set-ctrl{display:flex;align-items:center;gap:6px}
 .test-info{font-size:9px;color:var(--muted);margin-top:4px}
-
 /* ANALYTICS */
 .ana-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
-@media(max-width:400px){.ana-grid{grid-template-columns:1fr 1fr}}
 .kpi{background:var(--panel);border-radius:10px;padding:10px 12px;text-align:center;border:1px solid var(--border)}
 .kpi-l{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
 .kpi-v{font-size:22px;font-family:var(--head);font-weight:700}
@@ -136,13 +120,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:2px}
 .bar{width:100%;border-radius:2px 2px 0 0;transition:height .3s;min-height:2px}
 .bar-lbl{font-size:7px;color:var(--muted)}
-
+/* kW section */
+.kw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kw-card{background:var(--panel);border-radius:10px;padding:10px 12px;text-align:center;border:1px solid rgba(0,240,160,.2)}
+.kw-l{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
+.kw-v{font-size:18px;font-family:var(--head);font-weight:700;color:var(--keezer)}
+.kw-u{font-size:9px;color:var(--muted)}
 /* SERIJA */
 .serija-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
 .profile-step{display:grid;grid-template-columns:60px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#060b11}
 .profile-step.active{border-color:var(--ferm)}
 .active-dot{width:7px;height:7px;border-radius:50%;background:var(--ferm);box-shadow:0 0 6px var(--ferm)}
-
+/* FERM SESSION HISTORY */
+.session-item{padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#060b11}
+.session-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.session-name{font-family:var(--head);font-size:12px;color:var(--ferm)}
+.session-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.session-stat-k{font-size:7px;color:var(--muted)}
+.session-stat-v{font-size:11px;font-family:var(--head);color:var(--text)}
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center;z-index:1000;padding:16px}
 .modal-overlay.show{display:flex}
@@ -150,11 +145,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .modal-title{font-family:var(--head);font-size:16px;font-weight:700}
 .modal-btns{display:flex;gap:8px}
 .modal-btns button{flex:1;padding:10px;border-radius:10px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:700}
-
-/* INSTALL BANNER */
+.minput{width:100%;background:#060b11;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+.minput:focus{border-color:var(--ferm)}
 .install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);padding:12px 16px;flex-direction:column;gap:8px;z-index:200}
 .install-banner.show{display:flex}
-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
@@ -168,6 +162,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <span style="color:var(--muted);margin:0 6px">+</span>
     <span style="color:var(--keezer)">Keezer</span>
   </div>
+  <div style="flex:1;display:flex;justify-content:center">
+    <div class="header-clock">
+      <div class="htime" id="hdr-time">--:--:--</div>
+      <div id="hdr-date">--.--.----</div>
+    </div>
+  </div>
   <div class="header-right">
     <div id="af" class="alarm-b">F ALARM</div>
     <div id="ak" class="alarm-b">K ALARM</div>
@@ -177,7 +177,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 </div>
 
 <div id="safe-banner" class="safe-banner">
-  <span>KEEZER SAFE MODE!</span>
+  <span>⚠ KEEZER SAFE MODE!</span>
   <button class="hbtn" style="color:var(--danger);border-color:var(--danger)" onclick="resetSafe()">Reset</button>
 </div>
 
@@ -193,92 +193,112 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
 <!-- DASHBOARD -->
 <div id="pane-dash" class="pane active">
-<div class="grid2">
+  <div class="grid2">
 
-  <!-- Fermentacija -->
-  <div id="cf" class="card ferm-on">
-    <div class="glow"></div>
-    <div class="card-head">
-      <span id="fn" class="card-name" style="color:var(--ferm)">Fermentacija</span>
-      <div class="card-btns">
-        <button id="mdbtn" class="mdbtn" onclick="showModeModal()" style="border:1px solid var(--heat);background:rgba(255,107,53,.15);color:var(--heat)">GR</button>
-        <button id="tf" class="tbtn on" style="color:var(--ferm)" onclick="togSec('ferm')">ON</button>
+    <!-- Fermentacija -->
+    <div id="cf" class="card ferm-on">
+      <div class="glow"></div>
+      <div class="card-head">
+        <span id="fn" class="card-name" style="color:var(--ferm)">Fermentacija</span>
+        <div class="card-btns">
+          <button id="mdbtn" class="mdbtn" onclick="showModeModal()" style="border:1px solid var(--heat);background:rgba(255,107,53,.15);color:var(--heat)">GR</button>
+          <button id="tf" class="tbtn on" style="color:var(--ferm)" onclick="togSec('ferm')">ON</button>
+        </div>
+      </div>
+      <div class="temp-row">
+        <div id="ft" class="temp" style="color:var(--ferm)">--.-</div>
+        <div>
+          <div class="tsub">SP <span id="fsp">18.0</span>C</div>
+          <div id="fd" class="tsub" style="color:var(--ok)">+0.00</div>
+        </div>
+      </div>
+      <div class="spark-wrap"><canvas id="sf"></canvas></div>
+      <div id="ficon" class="icon">🧫</div>
+
+      <!-- FERMENTACIJA START/STOP BAR -->
+      <div class="ferm-session-bar">
+        <div class="ferm-session-info" id="ferm-session-info">
+          <span>Nema aktivne fermentacije</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="ferm-start-btn" class="btn-start-ferm" onclick="startFermSession()">▶ START</button>
+          <button id="ferm-stop-btn" class="btn-stop-ferm" style="display:none" onclick="stopFermSession()">■ STOP</button>
+        </div>
+      </div>
+
+      <div class="rbar">
+        <span class="rlbl">R1</span>
+        <div class="rg"><div id="df" class="rled"></div><span id="dfl" class="rn">GRIJANJE</span></div>
+        <div id="fa" style="display:none;margin-left:auto;align-items:center;gap:4px">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite"></div>
+          <span style="font-size:9px;color:var(--danger)">ALARM</span>
+        </div>
+      </div>
+      <div class="ctrl-grid">
+        <div class="ctrl"><span class="clbl">SETPOINT</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',-0.5)">-</button><span class="cval" id="fsc">18.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',0.5)">+</button></div></div>
+        <div class="ctrl"><span class="clbl">HISTEREZA</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',-0.1)">-</button><span class="cval" id="fhc">0.5</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',0.1)">+</button></div></div>
+        <div class="ctrl"><span class="clbl">ALARM D</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',-0.5)">-</button><span class="cval" id="fac">2.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',0.5)">+</button></div></div>
       </div>
     </div>
-    <div class="temp-row">
-      <div id="ft" class="temp" style="color:var(--ferm)">--.-</div>
-      <div>
-        <div class="tsub">SP <span id="fsp">18.0</span>C</div>
-        <div id="fd" class="tsub" style="color:var(--ok)">+0.00</div>
+
+    <!-- Keezer -->
+    <div id="ck" class="card keezer-on">
+      <div class="glow"></div>
+      <div class="card-head">
+        <span class="card-name" style="color:var(--keezer)">Keezer</span>
+        <button id="tk" class="tbtn on" style="color:var(--keezer)" onclick="togSec('keezer')">ON</button>
+      </div>
+      <div class="temp-row">
+        <div id="kt" class="temp" style="color:var(--keezer)">--.-</div>
+        <div>
+          <div class="tsub">SP <span id="ksp">5.0</span>C</div>
+          <div id="kd" class="tsub" style="color:var(--ok)">+0.00</div>
+        </div>
+      </div>
+      <div class="spark-wrap"><canvas id="sk"></canvas></div>
+      <!-- Keezer slika placeholder -->
+      <div id="keezer-img-wrap" style="width:100%;height:80px;border-radius:8px;background:#060b11;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative" onclick="document.getElementById('keezer-img-input').click()">
+        <img id="keezer-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:7px">
+        <div id="keezer-img-placeholder" style="text-align:center">
+          <div style="font-size:22px">📷</div>
+          <div style="font-size:8px;color:var(--muted);margin-top:2px">Dodaj sliku škrinje</div>
+        </div>
+      </div>
+      <input type="file" id="keezer-img-input" accept="image/*" style="display:none" onchange="loadKeezerImage(event)">
+      <div class="rbar">
+        <span class="rlbl">R2</span>
+        <div class="rg"><div id="dk" class="rled"></div><span class="rn">HLAĐENJE</span></div>
+        <div id="delay-b" style="display:none;margin-left:auto;font-size:9px;color:var(--warn)">⏱ Delay</div>
+        <div id="ka" style="display:none;margin-left:auto;align-items:center;gap:4px">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite"></div>
+          <span style="font-size:9px;color:var(--danger)">ALARM</span>
+        </div>
+      </div>
+      <div class="ctrl-grid">
+        <div class="ctrl"><span class="clbl">SETPOINT</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','sp',-0.5)">-</button><span class="cval" id="ksc">5.0</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','sp',0.5)">+</button></div></div>
+        <div class="ctrl"><span class="clbl">HISTEREZA</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','hy',-0.1)">-</button><span class="cval" id="khc">0.3</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','hy',0.1)">+</button></div></div>
+        <div class="ctrl"><span class="clbl">ALARM D</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','al',-0.5)">-</button><span class="cval" id="kac">2.0</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','al',0.5)">+</button></div></div>
       </div>
     </div>
-    <div class="spark-wrap"><canvas id="sf"></canvas></div>
-    <div id="ficon" class="icon">&#x1F9EB;</div>
-    <div class="rbar">
-      <span class="rlbl">R1</span>
-      <div class="rg"><div id="df" class="rled"></div><span id="dfl" class="rn">GRIJANJE</span></div>
-      <div id="fa" style="display:none;margin-left:auto;align-items:center;gap:4px">
-        <div style="width:6px;height:6px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite"></div>
-        <span style="font-size:9px;color:var(--danger)">ALARM</span>
+
+    <!-- Relay overview -->
+    <div class="rov span2">
+      <div class="rovt">RELAY STATUS (220V)</div>
+      <div class="rovg">
+        <div id="r1c" class="rc">
+          <div class="rt"><span id="r1n" class="rn2" style="color:var(--heat)">R1 GRIJANJE</span><div id="r1d" class="rd"></div></div>
+          <div style="font-size:8px;color:var(--muted);margin-top:2px">Fermentacija</div>
+          <div id="r1s" class="rs">OFF</div>
+        </div>
+        <div id="r2c" class="rc">
+          <div class="rt"><span class="rn2" style="color:var(--keezer)">R2 KEEZER</span><div id="r2d" class="rd"></div></div>
+          <div style="font-size:8px;color:var(--muted);margin-top:2px">Hlađenje</div>
+          <div id="r2s" class="rs">OFF</div>
+        </div>
       </div>
     </div>
-    <div class="ctrl-grid">
-      <div class="ctrl"><span class="clbl">SETPOINT</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',-0.5)">-</button><span class="cval" id="fsc">18.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',0.5)">+</button></div></div>
-      <div class="ctrl"><span class="clbl">HISTEREZA</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',-0.1)">-</button><span class="cval" id="fhc">0.5</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',0.1)">+</button></div></div>
-      <div class="ctrl"><span class="clbl">ALARM D</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',-0.5)">-</button><span class="cval" id="fac">2.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',0.5)">+</button></div></div>
-    </div>
+
   </div>
-
-  <!-- Keezer -->
-  <div id="ck" class="card keezer-on">
-    <div class="glow"></div>
-    <div class="card-head">
-      <span class="card-name" style="color:var(--keezer)">Keezer</span>
-      <button id="tk" class="tbtn on" style="color:var(--keezer)" onclick="togSec('keezer')">ON</button>
-    </div>
-    <div class="temp-row">
-      <div id="kt" class="temp" style="color:var(--keezer)">--.-</div>
-      <div>
-        <div class="tsub">SP <span id="ksp">5.0</span>C</div>
-        <div id="kd" class="tsub" style="color:var(--ok)">+0.00</div>
-      </div>
-    </div>
-    <div class="spark-wrap"><canvas id="sk"></canvas></div>
-    <div class="icon">&#x1F37A;</div>
-    <div class="rbar">
-      <span class="rlbl">R2</span>
-      <div class="rg"><div id="dk" class="rled"></div><span class="rn">HLADENJE</span></div>
-      <div id="delay-b" style="display:none;margin-left:auto;font-size:9px;color:var(--warn)">&#x23F1; Delay</div>
-      <div id="ka" style="display:none;margin-left:auto;align-items:center;gap:4px">
-        <div style="width:6px;height:6px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite"></div>
-        <span style="font-size:9px;color:var(--danger)">ALARM</span>
-      </div>
-    </div>
-    <div class="ctrl-grid">
-      <div class="ctrl"><span class="clbl">SETPOINT</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','sp',-0.5)">-</button><span class="cval" id="ksc">5.0</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','sp',0.5)">+</button></div></div>
-      <div class="ctrl"><span class="clbl">HISTEREZA</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','hy',-0.1)">-</button><span class="cval" id="khc">0.3</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','hy',0.1)">+</button></div></div>
-      <div class="ctrl"><span class="clbl">ALARM D</span><div class="crow"><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','al',-0.5)">-</button><span class="cval" id="kac">2.0</span><button class="cbtn" style="color:var(--keezer)" onclick="adj('keezer','al',0.5)">+</button></div></div>
-    </div>
-  </div>
-
-  <!-- Relay overview -->
-  <div class="rov span2">
-    <div class="rovt">RELAY STATUS (220V)</div>
-    <div class="rovg">
-      <div id="r1c" class="rc">
-        <div class="rt"><span id="r1n" class="rn2" style="color:var(--heat)">R1 GRIJANJE</span><div id="r1d" class="rd"></div></div>
-        <div style="font-size:8px;color:var(--muted);margin-top:2px">Fermentacija</div>
-        <div id="r1s" class="rs">OFF</div>
-      </div>
-      <div id="r2c" class="rc">
-        <div class="rt"><span class="rn2" style="color:var(--keezer)">R2 KEEZER</span><div id="r2d" class="rd"></div></div>
-        <div style="font-size:8px;color:var(--muted);margin-top:2px">Hladenje</div>
-        <div id="r2s" class="rs">OFF</div>
-      </div>
-    </div>
-  </div>
-
-</div>
 </div>
 
 <!-- GRAF -->
@@ -315,9 +335,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <div class="log-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:9px;color:var(--muted);letter-spacing:2px" id="log-cnt">LOG</span>
-      <button class="hbtn" onclick="clearLog()">Obrisi</button>
+      <button class="hbtn" onclick="clearLog()">Obriši</button>
     </div>
-    <div class="log-box" id="log-box"><div style="color:var(--muted)">Cekam podatke...</div></div>
+    <div class="log-box" id="log-box"><div style="color:var(--muted)">Čekam podatke...</div></div>
   </div>
   <div style="text-align:center;margin-top:12px">
     <button onclick="exportCSV()" style="padding:8px 20px;border-radius:20px;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.1);color:var(--ferm);font-family:var(--mono);font-size:10px;letter-spacing:2px;cursor:pointer">CSV Export</button>
@@ -331,14 +351,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <button id="ana-tjedan" class="tbtn" style="flex:1" onclick="setAnaPeriod('tjedan',this)">TJEDAN</button>
     <button id="ana-mjesec" class="tbtn" style="flex:1" onclick="setAnaPeriod('mjesec',this)">MJESEC</button>
   </div>
+  <!-- Keezer ciklusi -->
   <div class="ana-grid">
     <div class="kpi"><div class="kpi-l">CIKLUSA</div><div class="kpi-v" id="ana-total" style="color:var(--keezer)">-</div></div>
     <div class="kpi"><div class="kpi-l">PROSJEK</div><div class="kpi-v" id="ana-avg" style="color:var(--cool)">-</div></div>
-    <div class="kpi"><div class="kpi-l">NAJDUZI</div><div class="kpi-v" id="ana-max" style="color:var(--ferm)">-</div></div>
+    <div class="kpi"><div class="kpi-l">NAJDUŽI</div><div class="kpi-v" id="ana-max" style="color:var(--ferm)">-</div></div>
     <div class="kpi"><div class="kpi-l">DUTY %</div><div class="kpi-v" id="ana-duty" style="color:var(--warn)">-</div></div>
   </div>
+  <!-- kW potrošnja -->
+  <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+    <span>POTROŠNJA KEEZERA (Gorenje ~100W)</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button class="cbtn" style="color:var(--keezer)" onclick="adjCompW(-10)">-</button>
+      <span style="font-size:10px;color:var(--keezer)" id="comp-w-lbl">100W</span>
+      <button class="cbtn" style="color:var(--keezer)" onclick="adjCompW(10)">+</button>
+    </div>
+  </div>
+  <div class="kw-grid">
+    <div class="kw-card"><div class="kw-l">DANAS</div><div class="kw-v" id="kw-dan">-</div><div class="kw-u">kWh</div></div>
+    <div class="kw-card"><div class="kw-l">TJEDAN</div><div class="kw-v" id="kw-tjedan">-</div><div class="kw-u">kWh</div></div>
+    <div class="kw-card"><div class="kw-l">MJESEC</div><div class="kw-v" id="kw-mjesec">-</div><div class="kw-u">kWh</div></div>
+  </div>
+  <div style="font-size:8px;color:var(--muted);margin-bottom:10px;padding:6px 10px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">
+    Cijena (~0.12€/kWh): Danas <span id="eur-dan" style="color:var(--keezer)">-</span> € · Tjedan <span id="eur-tjedan" style="color:var(--keezer)">-</span> € · Mjesec <span id="eur-mjesec" style="color:var(--keezer)">-</span> €
+  </div>
   <div class="chart-wrap">
-    <div class="chart-title">UKLJUCIVANJA</div>
+    <div class="chart-title">UKLJUČIVANJA KEEZERA</div>
     <div class="bar-chart" id="ana-bars"></div>
   </div>
   <div class="log-wrap" style="margin-top:10px">
@@ -354,7 +392,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <div style="font-size:9px;color:var(--muted);letter-spacing:2px" id="batch-status-lbl">NOVA SERIJA</div>
       <div style="display:flex;gap:6px">
         <button id="batch-start-btn" class="hbtn" style="color:var(--ferm);border-color:var(--ferm)" onclick="showBatchModal()">+ Nova</button>
-        <button id="batch-stop-btn" class="hbtn" style="color:var(--danger);border-color:var(--danger);display:none" onclick="stopBatch()">Zavrsi</button>
+        <button id="batch-stop-btn" class="hbtn" style="color:var(--danger);border-color:var(--danger);display:none" onclick="stopBatch()">Završi</button>
       </div>
     </div>
     <div id="batch-info" style="display:none">
@@ -372,111 +410,113 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <div class="serija-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div style="font-size:9px;color:var(--muted);letter-spacing:2px">FERMENTACIJSKI PROFIL</div>
-      <button id="prof-toggle" class="tbtn" onclick="toggleProfile()" style="color:var(--ferm)">ISKLJUCEN</button>
+      <button id="prof-toggle" class="tbtn" onclick="toggleProfile()" style="color:var(--ferm)">ISKLJUČEN</button>
     </div>
-    <div id="profile-steps">
-      <!-- Generated by JS -->
-    </div>
+    <div id="profile-steps"></div>
     <button onclick="addProfileStep()" style="width:100%;padding:6px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:10px;margin-top:6px">+ Dodaj korak</button>
+  </div>
+
+  <!-- Historija fermentacija -->
+  <div class="serija-card">
+    <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:10px">PRETHODNE FERMENTACIJE</div>
+    <div id="ferm-history-list">
+      <div style="font-size:11px;color:var(--muted)">Nema prethodnih fermentacija.</div>
+    </div>
   </div>
 </div>
 
 <!-- POSTAVKE -->
 <div id="pane-set" class="pane">
-<div class="set-grid">
-
-  <!-- Kalibracija -->
-  <div class="set-card">
-    <div class="set-title">KALIBRACIJA SONDI</div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--ferm)">Fermentacija offset (C)</div>
-      <div class="set-ctrl">
-        <button class="cbtn" style="color:var(--ferm)" onclick="adjCal('ferm',-0.1)">-</button>
-        <span class="cval" id="f-cal" style="min-width:44px">0.0</span>
-        <button class="cbtn" style="color:var(--ferm)" onclick="adjCal('ferm',0.1)">+</button>
+  <div class="set-grid">
+    <!-- Kalibracija -->
+    <div class="set-card">
+      <div class="set-title">KALIBRACIJA SONDI</div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--ferm)">Fermentacija offset (C)</div>
+        <div class="set-ctrl">
+          <button class="cbtn" style="color:var(--ferm)" onclick="adjCal('ferm',-0.1)">-</button>
+          <span class="cval" id="f-cal" style="min-width:44px">0.0</span>
+          <button class="cbtn" style="color:var(--ferm)" onclick="adjCal('ferm',0.1)">+</button>
+        </div>
+        <div class="test-info">Sirova temp: <span id="f-raw" style="color:var(--ferm)">--.-</span>C</div>
       </div>
-      <div class="test-info">Sirova temp: <span id="f-raw" style="color:var(--ferm)">--.-</span>C</div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--keezer)">Keezer offset (C)</div>
+        <div class="set-ctrl">
+          <button class="cbtn" style="color:var(--keezer)" onclick="adjCal('keezer',-0.1)">-</button>
+          <span class="cval" id="k-cal" style="min-width:44px">0.0</span>
+          <button class="cbtn" style="color:var(--keezer)" onclick="adjCal('keezer',0.1)">+</button>
+        </div>
+        <div class="test-info">Sirova temp: <span id="k-raw" style="color:var(--keezer)">--.-</span>C</div>
+      </div>
     </div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--keezer)">Keezer offset (C)</div>
-      <div class="set-ctrl">
-        <button class="cbtn" style="color:var(--keezer)" onclick="adjCal('keezer',-0.1)">-</button>
-        <span class="cval" id="k-cal" style="min-width:44px">0.0</span>
-        <button class="cbtn" style="color:var(--keezer)" onclick="adjCal('keezer',0.1)">+</button>
+    <!-- Test mod -->
+    <div class="set-card">
+      <div class="set-title">TEST MOD</div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--ferm)">Fermentacija</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="f-test-btn" class="tbtn" onclick="toggleTest('ferm')" style="color:var(--ferm)">OFF</button>
+          <button class="cbtn" style="color:var(--ferm)" onclick="adjTestTemp('ferm',-0.5)">-</button>
+          <span class="cval" id="f-tt">20.0</span>
+          <button class="cbtn" style="color:var(--ferm)" onclick="adjTestTemp('ferm',0.5)">+</button>
+          <span style="font-size:9px;color:var(--muted)">C</span>
+        </div>
       </div>
-      <div class="test-info">Sirova temp: <span id="k-raw" style="color:var(--keezer)">--.-</span>C</div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--keezer)">Keezer</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="k-test-btn" class="tbtn" onclick="toggleTest('keezer')" style="color:var(--keezer)">OFF</button>
+          <button class="cbtn" style="color:var(--keezer)" onclick="adjTestTemp('keezer',-0.5)">-</button>
+          <span class="cval" id="k-tt">5.0</span>
+          <button class="cbtn" style="color:var(--keezer)" onclick="adjTestTemp('keezer',0.5)">+</button>
+          <span style="font-size:9px;color:var(--muted)">C</span>
+        </div>
+      </div>
+    </div>
+    <!-- Zaštitne postavke -->
+    <div class="set-card">
+      <div class="set-title">ZAŠTITNE POSTAVKE</div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--warn)">Comp. delay (min)</div>
+        <div class="set-ctrl">
+          <button class="cbtn" style="color:var(--warn)" onclick="adjSet('compDelay',-0.5)">-</button>
+          <span class="cval" id="s-comp">3.0</span>
+          <button class="cbtn" style="color:var(--warn)" onclick="adjSet('compDelay',0.5)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--danger)">Safe mode (SP+X C)</div>
+        <div class="set-ctrl">
+          <button class="cbtn" style="color:var(--danger)" onclick="adjSet('safeLimit',-0.5)">-</button>
+          <span class="cval" id="s-safe">5.0</span>
+          <button class="cbtn" style="color:var(--danger)" onclick="adjSet('safeLimit',0.5)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-lbl" style="color:var(--cool)">Rise rate (C/min)</div>
+        <div class="set-ctrl">
+          <button class="cbtn" style="color:var(--cool)" onclick="adjSet('riseRate',-0.1)">-</button>
+          <span class="cval" id="s-rise">0.5</span>
+          <button class="cbtn" style="color:var(--cool)" onclick="adjSet('riseRate',0.1)">+</button>
+        </div>
+      </div>
+    </div>
+    <!-- Telegram -->
+    <div class="set-card">
+      <div class="set-title">TELEGRAM</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
+        Bot: <span style="color:var(--text)">ferment_ctrl_mastermixx_bot</span><br>
+        Cooldown: <span style="color:var(--warn)">30 min između alarma</span><br>
+        Status: <span id="tg-status" style="color:var(--ok)">Aktivan</span>
+      </div>
+      <button onclick="sendTelegramTest()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--ok);background:rgba(34,197,94,.15);color:var(--ok);cursor:pointer;font-family:var(--mono);font-size:10px">Test poruka</button>
+      <div style="margin-top:8px">
+        <div class="set-lbl" style="color:var(--muted)">OTA lozinka: <span style="color:var(--text)">ferm2024</span></div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px">Arduino IDE: Tools → Port → Network → fermentation-ctrl</div>
+      </div>
     </div>
   </div>
-
-  <!-- Test mod -->
-  <div class="set-card">
-    <div class="set-title">TEST MOD</div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--ferm)">Fermentacija</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button id="f-test-btn" class="tbtn" onclick="toggleTest('ferm')" style="color:var(--ferm)">OFF</button>
-        <button class="cbtn" style="color:var(--ferm)" onclick="adjTestTemp('ferm',-0.5)">-</button>
-        <span class="cval" id="f-tt">20.0</span>
-        <button class="cbtn" style="color:var(--ferm)" onclick="adjTestTemp('ferm',0.5)">+</button>
-        <span style="font-size:9px;color:var(--muted)">C</span>
-      </div>
-    </div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--keezer)">Keezer</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button id="k-test-btn" class="tbtn" onclick="toggleTest('keezer')" style="color:var(--keezer)">OFF</button>
-        <button class="cbtn" style="color:var(--keezer)" onclick="adjTestTemp('keezer',-0.5)">-</button>
-        <span class="cval" id="k-tt">5.0</span>
-        <button class="cbtn" style="color:var(--keezer)" onclick="adjTestTemp('keezer',0.5)">+</button>
-        <span style="font-size:9px;color:var(--muted)">C</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Zastita -->
-  <div class="set-card">
-    <div class="set-title">ZASTITNE POSTAVKE</div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--warn)">Comp. delay (min)</div>
-      <div class="set-ctrl">
-        <button class="cbtn" style="color:var(--warn)" onclick="adjSet('compDelay',-0.5)">-</button>
-        <span class="cval" id="s-comp">3.0</span>
-        <button class="cbtn" style="color:var(--warn)" onclick="adjSet('compDelay',0.5)">+</button>
-      </div>
-    </div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--danger)">Safe mode (SP+X C)</div>
-      <div class="set-ctrl">
-        <button class="cbtn" style="color:var(--danger)" onclick="adjSet('safeLimit',-0.5)">-</button>
-        <span class="cval" id="s-safe">5.0</span>
-        <button class="cbtn" style="color:var(--danger)" onclick="adjSet('safeLimit',0.5)">+</button>
-      </div>
-    </div>
-    <div class="set-row">
-      <div class="set-lbl" style="color:var(--cool)">Rise rate (C/min)</div>
-      <div class="set-ctrl">
-        <button class="cbtn" style="color:var(--cool)" onclick="adjSet('riseRate',-0.1)">-</button>
-        <span class="cval" id="s-rise">0.5</span>
-        <button class="cbtn" style="color:var(--cool)" onclick="adjSet('riseRate',0.1)">+</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Telegram -->
-  <div class="set-card">
-    <div class="set-title">TELEGRAM</div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
-      Bot: <span style="color:var(--text)">ferment_ctrl_mastermixx_bot</span><br>
-      Status: <span id="tg-status" style="color:var(--ok)">Aktivan</span>
-    </div>
-    <button onclick="sendTelegramTest()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--ok);background:rgba(34,197,94,.15);color:var(--ok);cursor:pointer;font-family:var(--mono);font-size:10px">Test poruka</button>
-    <div style="margin-top:8px">
-      <div class="set-lbl" style="color:var(--muted)">OTA lozinka: <span style="color:var(--text)">ferm2024</span></div>
-      <div style="font-size:9px;color:var(--muted);margin-top:4px">Arduino IDE: Tools → Port → Network → fermentation-ctrl</div>
-    </div>
-  </div>
-
-</div>
 </div>
 
 <!-- Mode Modal -->
@@ -498,11 +538,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <div style="display:flex;flex-direction:column;gap:10px">
       <div>
         <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">NAZIV</div>
-        <input id="b-name-input" placeholder="npr. IPA #5" style="width:100%;background:#060b11;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none">
+        <input id="b-name-input" class="minput" placeholder="npr. IPA #5">
       </div>
       <div>
         <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">STIL</div>
-        <input id="b-style-input" placeholder="npr. India Pale Ale" style="width:100%;background:#060b11;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none">
+        <input id="b-style-input" class="minput" placeholder="npr. India Pale Ale">
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#060b11;border-radius:8px;border:1px solid var(--border)">
         <input type="checkbox" id="use-profile" style="accent-color:var(--ferm)">
@@ -529,13 +569,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 // ── Config ───────────────────────────────────────────────────────
 var FB = 'https://fermentationcontroller-default-rtdb.europe-west1.firebasedatabase.app';
 var TG_TOKEN = '';
-var TG_CHAT  = '';
+var TG_CHAT = '';
 var MAX_HIST = 300;
+var TG_COOLDOWN = 30 * 60 * 1000; // 30 minuta između alarma
+var tgLastSent = {};  // {key: timestamp}
 
-// Učitaj config s Firebase (token nije u source kodu)
 async function loadConfig(){
   var config = await fbGet('/config');
-  if (config) {
+  if(config){
     TG_TOKEN = config.tg_token || '';
     TG_CHAT  = config.tg_chat  || '';
   }
@@ -543,368 +584,400 @@ async function loadConfig(){
 
 // ── State ────────────────────────────────────────────────────────
 var st = {
-  ferm: {
-    en:true, temp:null, rawTemp:null,
-    sp:18, hy:0.5, al:2,
-    cal:0, testMode:false, testTemp:20,
-    relay:false, alarm:false, heat:true
-  },
-  keezer: {
-    en:true, temp:null, rawTemp:null,
-    sp:5, hy:0.3, al:2,
-    cal:0, testMode:false, testTemp:5,
-    relay:false, alarm:false,
-    safe:false, compDelay:false
-  },
-  settings: {
-    compDelay:3, safeLimit:5, riseRate:0.5
-  }
+  ferm:{en:true,temp:null,rawTemp:null,sp:18,hy:0.5,al:2,cal:0,testMode:false,testTemp:20,relay:false,alarm:false,heat:true},
+  keezer:{en:true,temp:null,rawTemp:null,sp:5,hy:0.3,al:2,cal:0,testMode:false,testTemp:5,relay:false,alarm:false,safe:false,compDelay:false},
+  settings:{compDelay:3,safeLimit:5,riseRate:0.5}
 };
 
 var fHist=[], kHist=[], relayLog=[], cycles=[];
 var anaPeriod = 'dan';
 var lastUserInput = 0;
-var USER_BLOCK = 10000; // 10s blokada nakon userinputa
+var USER_BLOCK = 10000;
+var compOffTs = 0;
+var keezerSafeMode = false;
+var compWatt = 100; // Gorenje default
 
-// Batch / Serija
-var batch = JSON.parse(localStorage.getItem('batch')||'null');
-var profileSteps = JSON.parse(localStorage.getItem('profileSteps')||JSON.stringify([
-  {day:1,  sp:18, label:'Pocetak'},
-  {day:4,  sp:20, label:'Diacetyl rest'},
-  {day:8,  sp:4,  label:'Crash cooling'}
-]));
+// Batch / Serija - iz Firebase (ne localStorage)
+var batch = null;
+var profileSteps = [
+  {day:1, sp:18, label:'Početak'},
+  {day:4, sp:20, label:'Diacetyl rest'},
+  {day:8, sp:4,  label:'Crash cooling'}
+];
 var profileEnabled = false;
+
+// Aktivna fermentacijska sesija (praćenje temp/trajanja)
+var fermSession = null; // {startTs, tempSamples:[{ts,temp}], minTemp, maxTemp, sumTemp, count}
+
+// Historija završenih fermentacija (Firebase)
+var fermHistory = [];
+
+// ── Clock ────────────────────────────────────────────────────────
+function tickClock(){
+  var now = new Date();
+  var hh = String(now.getHours()).padStart(2,'0');
+  var mm = String(now.getMinutes()).padStart(2,'0');
+  var ss = String(now.getSeconds()).padStart(2,'0');
+  var dd = String(now.getDate()).padStart(2,'0');
+  var mo = String(now.getMonth()+1).padStart(2,'0');
+  var yr = now.getFullYear();
+  var days = ['Ned','Pon','Uto','Sri','Čet','Pet','Sub'];
+  g('hdr-time').textContent = hh+':'+mm+':'+ss;
+  g('hdr-date').textContent = days[now.getDay()]+' '+dd+'.'+mo+'.'+yr;
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ── Keezer slika ─────────────────────────────────────────────────
+function loadKeezerImage(ev){
+  var file = ev.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = g('keezer-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    g('keezer-img-placeholder').style.display = 'none';
+    try{ localStorage.setItem('keezer_img', e.target.result); }catch(ex){}
+  };
+  reader.readAsDataURL(file);
+}
+// Učitaj sliku iz localStorage pri startu
+(function(){
+  try{
+    var saved = localStorage.getItem('keezer_img');
+    if(saved){
+      g('keezer-img').src = saved;
+      g('keezer-img').style.display = 'block';
+      g('keezer-img-placeholder').style.display = 'none';
+    }
+  }catch(ex){}
+})();
 
 // ── PWA Setup ────────────────────────────────────────────────────
 var deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault(); deferredPrompt = e;
-  document.getElementById('install-banner').classList.add('show');
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault(); deferredPrompt=e;
+  g('install-banner').classList.add('show');
 });
-function installApp(){
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt=null; }
-  hideInstall();
-}
-function hideInstall(){
-  document.getElementById('install-banner').classList.remove('show');
-}
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(console.error);
-}
+function installApp(){ if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;} hideInstall(); }
+function hideInstall(){ g('install-banner').classList.remove('show'); }
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
 
 // ── Firebase ────────────────────────────────────────────────────
 async function fbGet(path){
-  try{
-    var r = await fetch(FB+path+'.json');
-    if (!r.ok) return null;
-    return await r.json();
-  }catch(e){ return null; }
+  try{ var r=await fetch(FB+path+'.json'); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
 }
-
 async function fbSet(path, data){
-  try{
-    await fetch(FB+path+'.json',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(data)
-    });
-  }catch(e){ console.error('fbSet',e); }
+  try{ await fetch(FB+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); }
+  catch(e){ console.error('fbSet',e); }
+}
+async function fbPush(path, data){
+  try{ await fetch(FB+path+'.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); }
+  catch(e){ console.error('fbPush',e); }
 }
 
 // ── Polling ──────────────────────────────────────────────────────
 async function poll(){
   var sensors = await fbGet('/sensors');
-  if (!sensors) {
-    document.getElementById('conn').className='conn-dot err';
-    return;
-  }
-  document.getElementById('conn').className='conn-dot ok';
-
+  if(!sensors){ g('conn').className='conn-dot err'; return; }
+  g('conn').className='conn-dot ok';
   var ts = Date.now();
   var blocked = (ts - lastUserInput) < USER_BLOCK;
 
-  // Update ferm temp
-  if (sensors.ferm_temp !== undefined) {
+  if(sensors.ferm_temp !== undefined){
     st.ferm.rawTemp = sensors.ferm_temp;
     st.ferm.temp = st.ferm.testMode ? st.ferm.testTemp : sensors.ferm_temp;
     fHist.push({ts:ts, temp:st.ferm.temp, sp:st.ferm.sp});
-    if (fHist.length > MAX_HIST) fHist.shift();
+    if(fHist.length>MAX_HIST) fHist.shift();
+    // Dodaj u aktivnu fermentacijsku sesiju
+    if(fermSession){
+      fermSession.tempSamples.push({ts:ts,temp:st.ferm.temp});
+      fermSession.sumTemp += st.ferm.temp;
+      fermSession.count++;
+      if(st.ferm.temp < fermSession.minTemp) fermSession.minTemp = st.ferm.temp;
+      if(st.ferm.temp > fermSession.maxTemp) fermSession.maxTemp = st.ferm.temp;
+    }
   }
-
-  // Update keezer temp  
-  if (sensors.keezer_temp !== undefined) {
+  if(sensors.keezer_temp !== undefined){
     st.keezer.rawTemp = sensors.keezer_temp;
     st.keezer.temp = st.keezer.testMode ? st.keezer.testTemp : sensors.keezer_temp;
     kHist.push({ts:ts, temp:st.keezer.temp, sp:st.keezer.sp});
-    if (kHist.length > MAX_HIST) kHist.shift();
+    if(kHist.length>MAX_HIST) kHist.shift();
+  }
+  if(!blocked){
+    if(sensors.ferm_cal !== undefined) st.ferm.cal = sensors.ferm_cal;
+    if(sensors.keezer_cal !== undefined) st.keezer.cal = sensors.keezer_cal;
   }
 
-  // Update calibration from sensors
-  if (!blocked) {
-    if (sensors.ferm_cal !== undefined) st.ferm.cal = sensors.ferm_cal;
-    if (sensors.keezer_cal !== undefined) st.keezer.cal = sensors.keezer_cal;
-  }
-
-  // Run relay logic
   runLogic(ts);
-  
-  // Update UI
   updateUI();
-  drawSpark('sf', fHist, '#00d4ff');
-  drawSpark('sk', kHist, '#00f0a0');
+  drawSpark('sf',fHist,'#00d4ff');
+  drawSpark('sk',kHist,'#00f0a0');
   updateSettings();
   updateBatch(ts);
-
-  if (document.getElementById('pane-chart').classList.contains('active')) drawMainChart();
-  if (document.getElementById('pane-ana').classList.contains('active')) updateAna();
+  updateFermSession();
+  if(g('pane-chart').classList.contains('active')) drawMainChart();
+  if(g('pane-ana').classList.contains('active')) updateAna();
 }
 
-// ── Relay Logic (all in PWA) ──────────────────────────────────────
-var compOffTs = 0;
-var keezerSafeMode = false;
-var prevR1 = false, prevR2 = false;
-
+// ── Relay Logic ───────────────────────────────────────────────────
 function runLogic(ts){
-  var f = st.ferm, k = st.keezer, s = st.settings;
-
-  // Ferm logic
+  var f=st.ferm, k=st.keezer, s=st.settings;
   var fTemp = f.testMode ? f.testTemp : f.temp;
   var r1 = f.relay;
-  if (f.en && fTemp !== null) {
+  if(f.en && fTemp!==null){
     var fDiff = fTemp - f.sp;
-    if (f.heat) {
-      if (fDiff < -f.hy) r1 = true;
-      else if (fDiff > f.hy) r1 = false;
-    } else {
-      if (fDiff > f.hy) r1 = true;
-      else if (fDiff < -f.hy) r1 = false;
-    }
+    if(f.heat){ if(fDiff<-f.hy) r1=true; else if(fDiff>f.hy) r1=false; }
+    else       { if(fDiff>f.hy)  r1=true; else if(fDiff<-f.hy) r1=false; }
     f.alarm = Math.abs(fDiff) > f.al;
-  } else { r1 = false; f.alarm = false; }
+  } else { r1=false; f.alarm=false; }
 
-  // Keezer logic
   var kTemp = k.testMode ? k.testTemp : k.temp;
   var r2 = k.relay;
-  var compDelayMs = s.compDelay * 60000;
-  var inDelay = compOffTs > 0 && (ts - compOffTs) < compDelayMs;
+  var inDelay = compOffTs>0 && (ts-compOffTs)<(s.compDelay*60000);
   k.compDelay = inDelay;
 
-  // Safe mode check
-  if (kTemp !== null && kTemp > k.sp + s.safeLimit && !keezerSafeMode) {
-    keezerSafeMode = true;
-    k.safe = true;
-    addLog('KEEZER SAFE MODE! Releji iskljuceni','Keezer','R2','#ef4444');
-    sendTelegram('KEEZER SAFE MODE! Temp: ' + kTemp.toFixed(1) + 'C');
+  if(kTemp!==null && kTemp>k.sp+s.safeLimit && !keezerSafeMode){
+    keezerSafeMode=true; k.safe=true;
+    addLog('KEEZER SAFE MODE! Releji isključeni','Keezer','R2','#ef4444');
+    sendTelegram('keezer_safe','⚠️ KEEZER SAFE MODE!\nTemp: '+kTemp.toFixed(1)+'°C');
+  }
+  if(!keezerSafeMode && !inDelay && k.en && kTemp!==null){
+    var kDiff = kTemp-k.sp;
+    if(kDiff>k.hy) r2=true;
+    if(kDiff<-k.hy) r2=false;
+    k.alarm = Math.abs(kDiff)>k.al;
+  } else {
+    if(keezerSafeMode||!k.en) r2=false;
+    if(!keezerSafeMode) k.alarm=false;
   }
 
-  if (!keezerSafeMode && !inDelay && k.en && kTemp !== null) {
-    var kDiff = kTemp - k.sp;
-    if (kDiff > k.hy) r2 = true;
-    if (kDiff < -k.hy) r2 = false;
-    k.alarm = Math.abs(kDiff) > k.al;
-  } else { 
-    if (keezerSafeMode || !k.en) r2 = false;
-    if (!keezerSafeMode) k.alarm = false;
-  }
-
-  // Track relay changes for cycles
-  if (r2 !== k.relay) {
-    if (!r2 && k.relay) {
-      // R2 turned off - start delay
-      compOffTs = ts;
-      // Record cycle
-      if (window._keezerOnTs) {
-        var dur = Math.round((ts - window._keezerOnTs) / 1000);
-        cycles.push({onTs: window._keezerOnTs, offTs: ts, sec: dur});
-        if (cycles.length > 200) cycles.shift();
-        window._keezerOnTs = null;
+  // Praćenje ciklusa
+  if(r2!==k.relay){
+    if(!r2&&k.relay){
+      compOffTs=ts;
+      if(window._keezerOnTs){
+        var dur=Math.round((ts-window._keezerOnTs)/1000);
+        cycles.push({onTs:window._keezerOnTs,offTs:ts,sec:dur});
+        if(cycles.length>200) cycles.shift();
+        window._keezerOnTs=null;
       }
     }
-    if (r2 && !k.relay) window._keezerOnTs = ts;
-    addLog('Keezer R2 '+(r2?'ON':'OFF'), 'Keezer', 'R2', r2?'#00f0a0':'#3d5470');
+    if(r2&&!k.relay) window._keezerOnTs=ts;
+    addLog('Keezer R2 '+(r2?'ON':'OFF'),'Keezer','R2',r2?'#00f0a0':'#3d5470');
   }
-  if (r1 !== f.relay) {
-    addLog('Ferm R1 '+(r1?'ON':'OFF'), 'Ferm', 'R1', r1?'#ff6b35':'#3d5470');
-  }
+  if(r1!==f.relay) addLog('Ferm R1 '+(r1?'ON':'OFF'),'Ferm','R1',r1?'#ff6b35':'#3d5470');
 
-  // Alarm Telegram
-  if (f.alarm && !window._tgFerm) {
-    window._tgFerm = true;
-    sendTelegram('FERMENTACIJA ALARM! Temp: '+fTemp.toFixed(1)+'C (SP: '+f.sp.toFixed(1)+'C)');
-  } else if (!f.alarm) window._tgFerm = false;
-  if (k.alarm && !window._tgKeezer) {
-    window._tgKeezer = true;
-    sendTelegram('KEEZER ALARM! Temp: '+kTemp.toFixed(1)+'C (SP: '+k.sp.toFixed(1)+'C)');
-  } else if (!k.alarm) window._tgKeezer = false;
+  // Telegram alarmi s cooldownom
+  if(f.alarm && f.en)  sendTelegram('ferm_alarm','🌡 FERMENTACIJA ALARM!\nTemp: '+fTemp.toFixed(1)+'°C (SP: '+f.sp.toFixed(1)+'°C)');
+  else tgLastSent['ferm_alarm'] = 0;
+  if(k.alarm && k.en)  sendTelegram('keezer_alarm','❄️ KEEZER ALARM!\nTemp: '+kTemp.toFixed(1)+'°C (SP: '+k.sp.toFixed(1)+'°C)');
+  else tgLastSent['keezer_alarm'] = 0;
 
-  f.relay = r1;
-  k.relay = r2;
-  k.safe  = keezerSafeMode;
+  f.relay=r1; k.relay=r2; k.safe=keezerSafeMode;
 
   // Fermentacijski profil
-  if (profileEnabled && batch && batch.startTs) {
-    var dayNum = Math.floor((ts - batch.startTs) / 86400000) + 1;
-    var targetSP = profileSteps[0].sp;
-    for (var i=0; i<profileSteps.length; i++) {
-      if (dayNum >= profileSteps[i].day) targetSP = profileSteps[i].sp;
-    }
-    if (Math.abs(targetSP - f.sp) > 0.05) {
-      f.sp = targetSP;
-      addLog('Profil dan '+dayNum+': SP → '+targetSP+'C','Ferm','PROFIL','#00d4ff');
+  if(profileEnabled && batch && batch.startTs){
+    var dayNum=Math.floor((ts-batch.startTs)/86400000)+1;
+    var targetSP=profileSteps[0].sp;
+    for(var i=0;i<profileSteps.length;i++) if(dayNum>=profileSteps[i].day) targetSP=profileSteps[i].sp;
+    if(Math.abs(targetSP-f.sp)>0.05){
+      f.sp=targetSP;
+      addLog('Profil dan '+dayNum+': SP → '+targetSP+'°C','Ferm','PROFIL','#00d4ff');
     }
   }
 
-  // Send relays to Firebase (ESP32 reads this)
-  var relayData = {
-    r1: r1, r2: r2,
-    ferm_alarm: f.alarm,
-    keezer_alarm: k.alarm,
-    keezer_safe: keezerSafeMode,
-    ferm_cal: f.cal,
-    keezer_cal: k.cal
-  };
-  fbSet('/relays', relayData);
+  fbSet('/relays',{r1:r1,r2:r2,ferm_alarm:f.alarm,keezer_alarm:k.alarm,keezer_safe:keezerSafeMode,ferm_cal:f.cal,keezer_cal:k.cal});
 }
 
 function resetSafe(){
-  keezerSafeMode = false;
-  st.keezer.safe = false;
-  document.getElementById('safe-banner').className='safe-banner';
+  keezerSafeMode=false; st.keezer.safe=false;
+  g('safe-banner').className='safe-banner';
   addLog('Safe mode resetiran','Keezer','R2','#22c55e');
 }
 
+// ── Telegram s cooldownom ─────────────────────────────────────────
+async function sendTelegram(key, msg){
+  var now = Date.now();
+  if(tgLastSent[key] && (now-tgLastSent[key])<TG_COOLDOWN) return; // cooldown
+  tgLastSent[key] = now;
+  if(!TG_TOKEN||!TG_CHAT) return;
+  try{ await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage?chat_id='+TG_CHAT+'&text='+encodeURIComponent(msg)); }
+  catch(e){}
+}
+function sendTelegramTest(){ sendTelegram('test_'+Date.now(),'✅ Test poruka od FermentController PWA!'); }
+
+// ── Fermentacijska sesija (praćenje) ─────────────────────────────
+function startFermSession(){
+  fermSession = {
+    startTs: Date.now(),
+    tempSamples: [],
+    minTemp: Infinity,
+    maxTemp: -Infinity,
+    sumTemp: 0,
+    count: 0
+  };
+  addLog('Fermentacija STARTED','Ferm','SESSION','#00d4ff');
+  sendTelegram('ferm_start_'+Date.now(),'🍺 Fermentacija počela!\n'+(batch?'Serija: '+batch.name:''));
+  updateFermSession();
+}
+
+function stopFermSession(){
+  if(!fermSession) return;
+  var endTs = Date.now();
+  var durMs = endTs - fermSession.startTs;
+  var durH = (durMs/3600000).toFixed(1);
+  var avgT = fermSession.count>0 ? (fermSession.sumTemp/fermSession.count).toFixed(2) : '-';
+  var minT = fermSession.minTemp!==Infinity ? fermSession.minTemp.toFixed(1) : '-';
+  var maxT = fermSession.maxTemp!==-Infinity ? fermSession.maxTemp.toFixed(1) : '-';
+  var rec = {
+    startTs: fermSession.startTs,
+    endTs: endTs,
+    durH: parseFloat(durH),
+    avgTemp: parseFloat(avgT)||0,
+    minTemp: parseFloat(minT)||0,
+    maxTemp: parseFloat(maxT)||0,
+    batchName: batch ? batch.name : '-',
+    style: batch ? (batch.style||'-') : '-'
+  };
+  // Spremi u Firebase
+  fbPush('/ferm_sessions', rec);
+  fermHistory.unshift(rec);
+  if(fermHistory.length>20) fermHistory.pop();
+  addLog('Fermentacija STOP — trajanje: '+durH+'h, avg: '+avgT+'°C','Ferm','SESSION','#3d5470');
+  sendTelegram('ferm_stop_'+Date.now(),'🏁 Fermentacija završena!\nTrajanje: '+durH+'h | Avg: '+avgT+'°C | Min: '+minT+'°C | Max: '+maxT+'°C');
+  fermSession = null;
+  updateFermSession();
+  renderFermHistory();
+}
+
+function updateFermSession(){
+  var startBtn = g('ferm-start-btn');
+  var stopBtn  = g('ferm-stop-btn');
+  var info     = g('ferm-session-info');
+  if(fermSession){
+    startBtn.style.display = 'none';
+    stopBtn.style.display  = 'block';
+    var durMs = Date.now() - fermSession.startTs;
+    var durH  = Math.floor(durMs/3600000);
+    var durM  = Math.floor((durMs%3600000)/60000);
+    var avgT  = fermSession.count>0 ? (fermSession.sumTemp/fermSession.count).toFixed(1) : '--';
+    info.innerHTML = '▶ <span>'+String(durH).padStart(2,'0')+'h '+String(durM).padStart(2,'0')+'m</span> · avg <span>'+avgT+'°C</span>';
+  } else {
+    startBtn.style.display = 'block';
+    stopBtn.style.display  = 'none';
+    info.innerHTML = '<span>Nema aktivne fermentacije</span>';
+  }
+}
+
+// Učitaj historiju fermentacija iz Firebase
+async function loadFermHistory(){
+  var data = await fbGet('/ferm_sessions');
+  if(data){
+    fermHistory = Object.values(data).sort(function(a,b){return b.startTs-a.startTs;}).slice(0,20);
+  }
+  renderFermHistory();
+}
+
+function renderFermHistory(){
+  var container = g('ferm-history-list');
+  if(!fermHistory.length){ container.innerHTML='<div style="font-size:11px;color:var(--muted)">Nema prethodnih fermentacija.</div>'; return; }
+  var fmtDate = function(ts){ return new Date(ts).toLocaleDateString('hr-HR'); };
+  container.innerHTML = fermHistory.map(function(s){
+    return '<div class="session-item">'+
+      '<div class="session-head">'+
+        '<span class="session-name">'+(s.batchName||'-')+'</span>'+
+        '<span style="font-size:9px;color:var(--muted)">'+fmtDate(s.startTs)+'</span>'+
+      '</div>'+
+      '<div style="font-size:9px;color:var(--muted)">'+(s.style||'-')+'</div>'+
+      '<div class="session-stats">'+
+        '<div><div class="session-stat-k">Trajanje</div><div class="session-stat-v" style="color:var(--ferm)">'+s.durH+'h</div></div>'+
+        '<div><div class="session-stat-k">Avg °C</div><div class="session-stat-v">'+s.avgTemp+'</div></div>'+
+        '<div><div class="session-stat-k">Min °C</div><div class="session-stat-v" style="color:var(--cool)">'+s.minTemp+'</div></div>'+
+        '<div><div class="session-stat-k">Max °C</div><div class="session-stat-v" style="color:var(--heat)">'+s.maxTemp+'</div></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
 // ── User Controls ────────────────────────────────────────────────
-function adj(sec, param, delta){
-  lastUserInput = Date.now();
-  var s = st[sec];
-  var lim = {sp:[-5,40], hy:[0.1,3], al:[0.5,10]};
-  var cur = s[param];
-  var val = Math.round(Math.min(lim[param][1], Math.max(lim[param][0], cur+delta))*10)/10;
-  s[param] = val;
+function adj(sec,param,delta){
+  lastUserInput=Date.now();
+  var s=st[sec]; var lim={sp:[-5,40],hy:[0.1,3],al:[0.5,10]};
+  s[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],s[param]+delta))*10)/10;
   updateUI();
 }
-
-function togSec(sec){
-  lastUserInput = Date.now();
-  st[sec].en = !st[sec].en;
-  if (!st[sec].en) st[sec].relay = false;
-  updateUI();
-}
-
-function adjCal(sec, delta){
-  lastUserInput = Date.now();
-  var val = Math.round(Math.min(5, Math.max(-5, st[sec].cal + delta))*10)/10;
-  st[sec].cal = val;
-  fbSet('/relays/'+sec+'_cal', val);
-  updateSettings();
-}
-
-function toggleTest(sec){
-  lastUserInput = Date.now();
-  st[sec].testMode = !st[sec].testMode;
-  updateSettings();
-  updateUI();
-}
-
-function adjTestTemp(sec, delta){
-  lastUserInput = Date.now();
-  var val = Math.round(Math.min(50, Math.max(-10, st[sec].testTemp + delta))*10)/10;
-  st[sec].testTemp = val;
-  updateSettings();
-}
-
-function adjSet(param, delta){
-  lastUserInput = Date.now();
-  var lim = {compDelay:[0.5,30], safeLimit:[1,20], riseRate:[0.1,5]};
-  var cur = st.settings[param];
-  st.settings[param] = Math.round(Math.min(lim[param][1], Math.max(lim[param][0], cur+delta))*10)/10;
-  updateSettings();
-}
+function togSec(sec){ lastUserInput=Date.now(); st[sec].en=!st[sec].en; if(!st[sec].en) st[sec].relay=false; updateUI(); }
+function adjCal(sec,delta){ lastUserInput=Date.now(); st[sec].cal=Math.round(Math.min(5,Math.max(-5,st[sec].cal+delta))*10)/10; fbSet('/relays/'+sec+'_cal',st[sec].cal); updateSettings(); }
+function toggleTest(sec){ lastUserInput=Date.now(); st[sec].testMode=!st[sec].testMode; updateSettings(); updateUI(); }
+function adjTestTemp(sec,delta){ lastUserInput=Date.now(); st[sec].testTemp=Math.round(Math.min(50,Math.max(-10,st[sec].testTemp+delta))*10)/10; updateSettings(); }
+function adjSet(param,delta){ lastUserInput=Date.now(); var lim={compDelay:[0.5,30],safeLimit:[1,20],riseRate:[0.1,5]}; st.settings[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],st.settings[param]+delta))*10)/10; updateSettings(); }
+function adjCompW(delta){ compWatt=Math.max(50,Math.min(500,compWatt+delta)); g('comp-w-lbl').textContent=compWatt+'W'; if(g('pane-ana').classList.contains('active')) updateAna(); }
 
 // ── Mode Modal ───────────────────────────────────────────────────
 function showModeModal(){
-  var f = st.ferm;
-  var newMode = f.heat ? 'cool' : 'heat';
-  document.getElementById('mode-modal-txt').innerHTML =
-    'Trenutni mod: <b style="color:'+(f.heat?'#ff6b35':'#38bdf8')+'">'+(f.heat?'GRIJANJE':'HLADENJE')+'</b><br>'+
-    'Novi mod: <b style="color:'+(f.heat?'#38bdf8':'#ff6b35')+'">'+(f.heat?'HLADENJE':'GRIJANJE')+'</b><br><br>'+
-    '<span style="color:#f59e0b">Relay ce se iskljuciti pri promjeni.</span>';
-  var btn = document.getElementById('mode-confirm');
-  btn.style.borderColor = f.heat?'#38bdf8':'#ff6b35';
-  btn.style.background  = f.heat?'rgba(56,189,248,.2)':'rgba(255,107,53,.2)';
-  btn.style.color       = f.heat?'#38bdf8':'#ff6b35';
-  btn.onclick = function(){
-    lastUserInput = Date.now();
-    st.ferm.heat = !st.ferm.heat;
-    st.ferm.relay = false;
-    addLog('Ferm mod: '+(st.ferm.heat?'GRIJANJE':'HLADENJE'),'Ferm','MOD','#00d4ff');
-    closeModal('mode-modal');
-    updateUI();
-  };
-  document.getElementById('mode-modal').classList.add('show');
+  var f=st.ferm;
+  g('mode-modal-txt').innerHTML='Trenutni mod: <b style="color:'+(f.heat?'#ff6b35':'#38bdf8')+'">'+(f.heat?'GRIJANJE':'HLAĐENJE')+'</b><br>Novi mod: <b style="color:'+(f.heat?'#38bdf8':'#ff6b35')+'">'+(f.heat?'HLAĐENJE':'GRIJANJE')+'</b><br><br><span style="color:#f59e0b">Relay će se isključiti pri promjeni.</span>';
+  var btn=g('mode-confirm');
+  btn.style.cssText='border:1px solid '+(f.heat?'#38bdf8':'#ff6b35')+';background:'+(f.heat?'rgba(56,189,248,.2)':'rgba(255,107,53,.2)')+';color:'+(f.heat?'#38bdf8':'#ff6b35');
+  btn.onclick=function(){ lastUserInput=Date.now(); st.ferm.heat=!st.ferm.heat; st.ferm.relay=false; addLog('Ferm mod: '+(st.ferm.heat?'GRIJANJE':'HLAĐENJE'),'Ferm','MOD','#00d4ff'); closeModal('mode-modal'); updateUI(); };
+  g('mode-modal').classList.add('show');
 }
-
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function closeModal(id){ g(id).classList.remove('show'); }
 
 // ── Serija ───────────────────────────────────────────────────────
-function showBatchModal(){ document.getElementById('batch-modal').classList.add('show'); }
-
-function startBatch(){
-  var name  = document.getElementById('b-name-input').value.trim();
-  var style = document.getElementById('b-style-input').value.trim();
-  var useProf = document.getElementById('use-profile').checked;
-  if (!name) return;
-  batch = {name:name, style:style, startTs:Date.now(), active:true};
-  localStorage.setItem('batch', JSON.stringify(batch));
-  profileEnabled = useProf;
-  if (useProf && profileSteps.length > 0) {
-    st.ferm.sp = profileSteps[0].sp;
-  }
+function showBatchModal(){ g('batch-modal').classList.add('show'); }
+async function startBatch(){
+  var name=g('b-name-input').value.trim(); var style=g('b-style-input').value.trim(); var useProf=g('use-profile').checked;
+  if(!name) return;
+  batch={name:name,style:style,startTs:Date.now(),active:true};
+  await fbSet('/batch',batch);
+  profileEnabled=useProf;
+  if(useProf&&profileSteps.length>0) st.ferm.sp=profileSteps[0].sp;
   addLog('Serija "'+name+'" startala','Ferm','SERIJA','#00d4ff');
-  sendTelegram('Serija "'+name+'" startala!');
+  sendTelegram('batch_start_'+Date.now(),'🍺 Serija "'+name+'" startala!');
   closeModal('batch-modal');
   updateBatch(Date.now());
 }
+async function stopBatch(){
+  if(batch){ addLog('Serija "'+batch.name+'" završena','Ferm','SERIJA','#3d5470'); sendTelegram('batch_stop_'+Date.now(),'🏁 Serija "'+batch.name+'" završena!'); }
+  batch=null; profileEnabled=false;
+  await fbSet('/batch',null);
+  updateBatch(Date.now());
+}
 
-function stopBatch(){
-  if (batch) {
-    addLog('Serija "'+batch.name+'" zavrsena','Ferm','SERIJA','#3d5470');
-    sendTelegram('Serija "'+batch.name+'" zavrsena!');
-  }
-  batch = null;
-  profileEnabled = false;
-  localStorage.removeItem('batch');
+async function loadBatch(){
+  var saved = await fbGet('/batch');
+  if(saved && saved.active) batch = saved;
+  var savedProfile = await fbGet('/profile_steps');
+  if(savedProfile && Array.isArray(savedProfile)) profileSteps = savedProfile;
   updateBatch(Date.now());
 }
 
 function updateBatch(ts){
-  var empty = document.getElementById('batch-empty');
-  var info  = document.getElementById('batch-info');
-  var startBtn = document.getElementById('batch-start-btn');
-  var stopBtn  = document.getElementById('batch-stop-btn');
-  if (batch && batch.active) {
-    empty.style.display='none'; info.style.display='block';
-    startBtn.style.display='none'; stopBtn.style.display='block';
-    document.getElementById('batch-status-lbl').textContent='AKTIVNA SERIJA';
-    document.getElementById('b-name').textContent=batch.name;
-    document.getElementById('b-style').textContent=batch.style||'-';
-    document.getElementById('b-day').textContent=Math.floor((ts-batch.startTs)/86400000)+1+'. dan';
-    document.getElementById('b-start').textContent=new Date(batch.startTs).toLocaleDateString('hr-HR');
+  if(batch&&batch.active){
+    g('batch-empty').style.display='none'; g('batch-info').style.display='block';
+    g('batch-start-btn').style.display='none'; g('batch-stop-btn').style.display='block';
+    g('batch-status-lbl').textContent='AKTIVNA SERIJA';
+    g('b-name').textContent=batch.name; g('b-style').textContent=batch.style||'-';
+    g('b-day').textContent=Math.floor((ts-batch.startTs)/86400000)+1+'. dan';
+    g('b-start').textContent=new Date(batch.startTs).toLocaleDateString('hr-HR');
   } else {
-    empty.style.display='block'; info.style.display='none';
-    startBtn.style.display='block'; stopBtn.style.display='none';
-    document.getElementById('batch-status-lbl').textContent='NOVA SERIJA';
+    g('batch-empty').style.display='block'; g('batch-info').style.display='none';
+    g('batch-start-btn').style.display='block'; g('batch-stop-btn').style.display='none';
+    g('batch-status-lbl').textContent='NOVA SERIJA';
   }
   renderProfile();
 }
 
 function renderProfile(){
-  var container = document.getElementById('profile-steps');
-  var dayNum = batch && batch.startTs ? Math.floor((Date.now()-batch.startTs)/86400000)+1 : 0;
-  var activeIdx = 0;
-  for (var i=0;i<profileSteps.length;i++){if(dayNum>=profileSteps[i].day)activeIdx=i;}
-  container.innerHTML = profileSteps.map(function(step,i){
-    var isActive = profileEnabled && batch && i===activeIdx;
+  var container=g('profile-steps');
+  var dayNum=batch&&batch.startTs?Math.floor((Date.now()-batch.startTs)/86400000)+1:0;
+  var activeIdx=0;
+  for(var i=0;i<profileSteps.length;i++) if(dayNum>=profileSteps[i].day) activeIdx=i;
+  container.innerHTML=profileSteps.map(function(step,i){
+    var isActive=profileEnabled&&batch&&i===activeIdx;
     return '<div class="profile-step'+(isActive?' active':'')+'">'+
       '<div style="font-size:10px;color:var(--muted)">Dan '+step.day+'+</div>'+
       '<div style="font-size:11px;color:var(--text)">'+step.label+'</div>'+
@@ -913,73 +986,57 @@ function renderProfile(){
         '<span style="font-size:11px;min-width:34px;text-align:center">'+step.sp.toFixed(1)+'C</span>'+
         '<button class="cbtn" style="color:var(--ferm)" onclick="adjProfileSP('+i+',0.5)">+</button>'+
         (isActive?'<div class="active-dot"></div>':'')+
-      '</div>'+
-    '</div>';
+      '</div></div>';
   }).join('');
-  var btn = document.getElementById('prof-toggle');
-  btn.textContent = profileEnabled ? 'AKTIVAN' : 'ISKLJUCEN';
-  btn.className = 'tbtn' + (profileEnabled?' on':'');
+  var btn=g('prof-toggle'); btn.textContent=profileEnabled?'AKTIVAN':'ISKLJUČEN'; btn.className='tbtn'+(profileEnabled?' on':'');
 }
-
-function toggleProfile(){
-  profileEnabled = !profileEnabled;
+function toggleProfile(){ profileEnabled=!profileEnabled; renderProfile(); }
+function adjProfileSP(idx,delta){
+  profileSteps[idx].sp=Math.round(Math.min(40,Math.max(0,profileSteps[idx].sp+delta))*10)/10;
+  fbSet('/profile_steps',profileSteps);
   renderProfile();
 }
-
-function adjProfileSP(idx, delta){
-  profileSteps[idx].sp = Math.round(Math.min(40,Math.max(0,profileSteps[idx].sp+delta))*10)/10;
-  localStorage.setItem('profileSteps', JSON.stringify(profileSteps));
-  renderProfile();
-}
-
 function addProfileStep(){
-  var last = profileSteps[profileSteps.length-1];
-  profileSteps.push({day: last ? last.day+3 : 1, sp:18, label:'Korak '+(profileSteps.length+1)});
-  localStorage.setItem('profileSteps', JSON.stringify(profileSteps));
+  var last=profileSteps[profileSteps.length-1];
+  profileSteps.push({day:last?last.day+3:1,sp:18,label:'Korak '+(profileSteps.length+1)});
+  fbSet('/profile_steps',profileSteps);
   renderProfile();
 }
 
 // ── Update UI ────────────────────────────────────────────────────
-function g(id){return document.getElementById(id);}
-
+function g(id){ return document.getElementById(id); }
 function updateUI(){
   var f=st.ferm, k=st.keezer;
   var fT=f.temp!==null?f.temp.toFixed(1):'--.-';
   var kT=k.temp!==null?k.temp.toFixed(1):'--.-';
   var fd=f.temp!==null?(f.temp-f.sp).toFixed(2):null;
   var kd=k.temp!==null?(k.temp-k.sp).toFixed(2):null;
-  var fA=f.alarm&&f.en;
-  var kA=k.alarm&&k.en;
+  var fA=f.alarm&&f.en, kA=k.alarm&&k.en;
 
-  // Ferm
   g('ft').textContent=fT; g('ft').style.color=f.en?'#00d4ff':'#3d5470';
   g('fsp').textContent=f.sp.toFixed(1); g('fsc').textContent=f.sp.toFixed(1);
   g('fhc').textContent=f.hy.toFixed(1); g('fac').textContent=f.al.toFixed(1);
-  if(fd!==null){g('fd').textContent=(fd>=0?'+':'')+fd;g('fd').style.color=fA?'#ef4444':Math.abs(fd)>f.hy?'#f59e0b':'#22c55e';}
+  if(fd!==null){ g('fd').textContent=(fd>=0?'+':'')+fd; g('fd').style.color=fA?'#ef4444':Math.abs(fd)>f.hy?'#f59e0b':'#22c55e'; }
   g('fn').textContent=f.en?'Fermentacija':'Ambient';
-  g('ficon').textContent=f.en?'\u{1F9EB}':'\u{1F321}\uFE0F';
-  g('ficon').style.opacity=f.en?.85:.4;
+  g('ficon').textContent=f.en?'🧫':'🌡️'; g('ficon').style.opacity=f.en?.85:.4;
   var ftb=g('tf'); ftb.textContent=f.en?'ON':'AMBIENT'; ftb.className='tbtn'+(f.en?' on':''); ftb.style.color=f.en?'#00d4ff':'#3d5470';
   var mb=g('mdbtn'); mb.textContent=f.heat?'GR':'HL';
-  mb.style.borderColor=f.heat?'#ff6b35':'#38bdf8'; mb.style.background=f.heat?'rgba(255,107,53,.15)':'rgba(56,189,248,.15)';
-  mb.style.color=f.heat?'#ff6b35':'#38bdf8'; mb.style.display=f.en?'':'none';
+  mb.style.cssText='border:1px solid '+(f.heat?'#ff6b35':'#38bdf8')+';background:'+(f.heat?'rgba(255,107,53,.15)':'rgba(56,189,248,.15)')+';color:'+(f.heat?'#ff6b35':'#38bdf8')+';display:'+(f.en?'':'none');
   var fc=f.heat?'#ff6b35':'#38bdf8'; var fr=f.relay&&f.en;
   g('df').style.cssText='background:'+(fr?fc:'#1a2a3a')+';border-color:'+(fr?fc:'')+';box-shadow:'+(fr?'0 0 8px '+fc:'none');
-  g('dfl').textContent=f.heat?'GRIJANJE':'HLADENJE';
+  g('dfl').textContent=f.heat?'GRIJANJE':'HLAĐENJE';
   g('fa').style.display=fA?'flex':'none';
   g('cf').className='card'+(f.en?' ferm-on':'');
   g('af').className='alarm-b'+(fA?' show':'');
-  // R1
   g('r1c').className='rc'+(fr?' on':''); g('r1c').style.borderColor=fr?fc+'88':''; g('r1c').style.boxShadow=fr?'0 0 12px '+fc+'30':'';
   g('r1d').style.cssText='background:'+(fr?fc:'#1a2a3a')+';box-shadow:'+(fr?'0 0 8px '+fc:'none');
   g('r1s').textContent=fr?'ON':'OFF'; g('r1s').style.color=fr?fc:'#3d5470';
-  g('r1n').textContent='R1 '+(f.heat?'GRIJANJE':'HLADENJE'); g('r1n').style.color=fc;
+  g('r1n').textContent='R1 '+(f.heat?'GRIJANJE':'HLAĐENJE'); g('r1n').style.color=fc;
 
-  // Keezer
   g('kt').textContent=kT; g('kt').style.color=k.en?'#00f0a0':'#3d5470';
   g('ksp').textContent=k.sp.toFixed(1); g('ksc').textContent=k.sp.toFixed(1);
   g('khc').textContent=k.hy.toFixed(1); g('kac').textContent=k.al.toFixed(1);
-  if(kd!==null){g('kd').textContent=(kd>=0?'+':'')+kd;g('kd').style.color=kA?'#ef4444':Math.abs(kd)>k.hy?'#f59e0b':'#22c55e';}
+  if(kd!==null){ g('kd').textContent=(kd>=0?'+':'')+kd; g('kd').style.color=kA?'#ef4444':Math.abs(kd)>k.hy?'#f59e0b':'#22c55e'; }
   var ktb=g('tk'); ktb.textContent=k.en?'ON':'OFF'; ktb.className='tbtn'+(k.en?' on':''); ktb.style.color=k.en?'#00f0a0':'#3d5470';
   var kr=k.relay&&k.en&&!keezerSafeMode;
   g('dk').style.cssText='background:'+(kr?'#00f0a0':'#1a2a3a')+';border-color:'+(kr?'#00f0a0':'')+';box-shadow:'+(kr?'0 0 8px #00f0a0':'none');
@@ -988,7 +1045,6 @@ function updateUI(){
   g('ck').className='card'+(k.en?' keezer-on':'');
   g('ak').className='alarm-b'+(kA?' show':'');
   g('safe-banner').className='safe-banner'+(keezerSafeMode?' show':'');
-  // R2
   g('r2c').className='rc'+(kr?' on':''); g('r2c').style.borderColor=kr?'#00f0a088':''; g('r2c').style.boxShadow=kr?'0 0 12px #00f0a030':'';
   g('r2d').style.cssText='background:'+(kr?'#00f0a0':'#1a2a3a')+';box-shadow:'+(kr?'0 0 8px #00f0a0':'none');
   g('r2s').textContent=kr?'ON':'OFF'; g('r2s').style.color=kr?'#00f0a0':'#3d5470';
@@ -996,23 +1052,16 @@ function updateUI(){
 
 function updateSettings(){
   var f=st.ferm, k=st.keezer, s=st.settings;
-  if(g('f-cal')){
-    g('f-cal').textContent=f.cal.toFixed(1);
-    g('k-cal').textContent=k.cal.toFixed(1);
-    g('f-raw').textContent=f.rawTemp!==null?f.rawTemp.toFixed(2):'--.-';
-    g('k-raw').textContent=k.rawTemp!==null?k.rawTemp.toFixed(2):'--.-';
-    g('f-tt').textContent=f.testTemp.toFixed(1);
-    g('k-tt').textContent=k.testTemp.toFixed(1);
-    g('s-comp').textContent=s.compDelay.toFixed(1);
-    g('s-safe').textContent=s.safeLimit.toFixed(1);
-    g('s-rise').textContent=s.riseRate.toFixed(1);
-    var ftb=g('f-test-btn'); ftb.textContent=f.testMode?'ON':'OFF'; ftb.className='tbtn'+(f.testMode?' on':''); ftb.style.color=f.testMode?'#00d4ff':'#3d5470';
-    var ktb=g('k-test-btn'); ktb.textContent=k.testMode?'ON':'OFF'; ktb.className='tbtn'+(k.testMode?' on':''); ktb.style.color=k.testMode?'#00f0a0':'#3d5470';
-  }
+  if(g('f-cal')){ g('f-cal').textContent=f.cal.toFixed(1); g('k-cal').textContent=k.cal.toFixed(1); }
+  if(g('f-raw')){ g('f-raw').textContent=f.rawTemp!==null?f.rawTemp.toFixed(2):'--.-'; g('k-raw').textContent=k.rawTemp!==null?k.rawTemp.toFixed(2):'--.-'; }
+  if(g('f-tt')){ g('f-tt').textContent=f.testTemp.toFixed(1); g('k-tt').textContent=k.testTemp.toFixed(1); }
+  if(g('s-comp')){ g('s-comp').textContent=s.compDelay.toFixed(1); g('s-safe').textContent=s.safeLimit.toFixed(1); g('s-rise').textContent=s.riseRate.toFixed(1); }
+  if(g('f-test-btn')){ var ftb=g('f-test-btn'); ftb.textContent=f.testMode?'ON':'OFF'; ftb.className='tbtn'+(f.testMode?' on':''); ftb.style.color=f.testMode?'#00d4ff':'#3d5470'; }
+  if(g('k-test-btn')){ var ktb=g('k-test-btn'); ktb.textContent=k.testMode?'ON':'OFF'; ktb.className='tbtn'+(k.testMode?' on':''); ktb.style.color=k.testMode?'#00f0a0':'#3d5470'; }
 }
 
 // ── Charts ───────────────────────────────────────────────────────
-function drawSpark(id, data, color){
+function drawSpark(id,data,color){
   var canvas=g(id); if(!canvas||data.length<2) return;
   var dpr=window.devicePixelRatio||1;
   var W=canvas.clientWidth||200, H=canvas.clientHeight||48;
@@ -1039,19 +1088,18 @@ function drawMainChart(){
   var pad={top:12,right:14,bottom:24,left:38};
   var fw=W-pad.left-pad.right, fh=H-pad.top-pad.bottom;
   var allV=fHist.concat(kHist).map(function(d){return d.temp;});
-  allV.push(st.ferm.sp, st.keezer.sp);
+  allV.push(st.ferm.sp,st.keezer.sp);
   if(!allV.length) return;
   var mnV=Math.floor(Math.min.apply(null,allV)-1), mxV=Math.ceil(Math.max.apply(null,allV)+1), range=mxV-mnV||1;
   var toX=function(i,len){return pad.left+(i/Math.max(len-1,1))*fw;};
   var toY=function(v){return pad.top+fh-((v-mnV)/range)*fh;};
   for(var t=mnV;t<=mxV;t++){
-    var y=toY(t);
-    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y);
+    var y=toY(t); ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y);
     ctx.strokeStyle='#172130'; ctx.lineWidth=1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle='#3d5470'; ctx.font='8px monospace'; ctx.textAlign='right'; ctx.fillText(t,pad.left-4,y+3);
   }
-  [[fHist,'#00d4ff',st.ferm.sp,'F'],[kHist,'#00f0a0',st.keezer.sp,'K']].forEach(function(item){
-    var data=item[0], color=item[1], sp=item[2], lbl=item[3];
+  [[fHist,'#00d4ff',st.ferm.sp],[kHist,'#00f0a0',st.keezer.sp]].forEach(function(item){
+    var data=item[0], color=item[1], sp=item[2];
     var spy=toY(sp);
     ctx.beginPath(); ctx.moveTo(pad.left,spy); ctx.lineTo(W-pad.right,spy);
     ctx.strokeStyle=color+'55'; ctx.lineWidth=1; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
@@ -1066,44 +1114,57 @@ function drawMainChart(){
     ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
   });
   g('chart-lbl').textContent='TEMPERATURA ('+Math.max(fHist.length,kHist.length)+' mjerenja)';
-  // Stats
-  function calcStats(hist, prefix, sp){
+  function calcStats(hist,prefix,sp){
     var temps=hist.map(function(d){return d.temp;});
     g(prefix+'-avg').textContent=temps.length?(temps.reduce(function(a,b){return a+b;},0)/temps.length).toFixed(1):'-';
     g(prefix+'-min').textContent=temps.length?Math.min.apply(null,temps).toFixed(1):'-';
     g(prefix+'-max').textContent=temps.length?Math.max.apply(null,temps).toFixed(1):'-';
     g(prefix+'-sp').textContent=sp.toFixed(1);
   }
-  calcStats(fHist,'sf',st.ferm.sp);
-  calcStats(kHist,'sk',st.keezer.sp);
+  calcStats(fHist,'sf',st.ferm.sp); calcStats(kHist,'sk',st.keezer.sp);
 }
 
 // ── Analytics ────────────────────────────────────────────────────
-function setAnaPeriod(p, btn){
+function setAnaPeriod(p,btn){
   anaPeriod=p;
-  document.querySelectorAll('.tabs ~ .pane#pane-ana .tbtn, #pane-ana .tbtn').forEach(function(b){b.className='tbtn';b.style.color='';});
+  document.querySelectorAll('#pane-ana .tbtn').forEach(function(b){b.className='tbtn';b.style.color='';});
   btn.className='tbtn on'; btn.style.color='#00f0a0';
   updateAna();
 }
-
 function updateAna(){
-  var now = Date.now();
-  var periodMs = {dan:86400000, tjedan:604800000, mjesec:2592000000};
-  var filtered = cycles.filter(function(c){return c.onTs >= now - periodMs[anaPeriod];});
-  var total = filtered.length;
-  var avgDur = total ? Math.round(filtered.reduce(function(a,b){return a+b.sec;},0)/total) : 0;
-  var maxDur = total ? Math.max.apply(null,filtered.map(function(c){return c.sec;})) : 0;
-  var totalOn = filtered.reduce(function(a,b){return a+b.sec;},0);
-  var elapsed = filtered.length>1 ? (filtered[filtered.length-1].offTs-filtered[0].onTs)/1000 : 0;
-  var duty = elapsed>0 ? Math.round(totalOn/elapsed*100) : 0;
+  var now=Date.now();
+  var periodMs={dan:86400000,tjedan:604800000,mjesec:2592000000};
+  var filtered=cycles.filter(function(c){return c.onTs>=now-periodMs[anaPeriod];});
+  var total=filtered.length;
+  var avgDur=total?Math.round(filtered.reduce(function(a,b){return a+b.sec;},0)/total):0;
+  var maxDur=total?Math.max.apply(null,filtered.map(function(c){return c.sec;})):0;
+  var totalOn=filtered.reduce(function(a,b){return a+b.sec;},0);
+  var elapsed=filtered.length>1?(filtered[filtered.length-1].offTs-filtered[0].onTs)/1000:0;
+  var duty=elapsed>0?Math.round(totalOn/elapsed*100):0;
 
   g('ana-total').textContent=total||'-';
   g('ana-avg').textContent=avgDur?avgDur+'s':'-';
   g('ana-max').textContent=maxDur?maxDur+'s':'-';
   g('ana-duty').textContent=duty?duty+'%':'-';
 
+  // kW računanje
+  var kwhFactor = compWatt / 1000; // kW po sati rada
+  function calcKwh(period){
+    var ms = periodMs[period];
+    var f2 = cycles.filter(function(c){return c.onTs>=now-ms;});
+    var onSec = f2.reduce(function(a,b){return a+b.sec;},0);
+    return (onSec/3600 * kwhFactor).toFixed(2);
+  }
+  var kwDan=calcKwh('dan'), kwTj=calcKwh('tjedan'), kwMj=calcKwh('mjesec');
+  g('kw-dan').textContent=kwDan;
+  g('kw-tjedan').textContent=kwTj;
+  g('kw-mjesec').textContent=kwMj;
+  g('eur-dan').textContent=(parseFloat(kwDan)*0.12).toFixed(2);
+  g('eur-tjedan').textContent=(parseFloat(kwTj)*0.12).toFixed(2);
+  g('eur-mjesec').textContent=(parseFloat(kwMj)*0.12).toFixed(2);
+
   // Bar chart
-  var DAYS=['Pon','Uto','Sri','Cet','Pet','Sub','Ned'];
+  var DAYS=['Pon','Uto','Sri','Čet','Pet','Sub','Ned'];
   var buckets=[], labels=[];
   if(anaPeriod==='dan'){
     buckets=Array(24).fill(0); labels=Array.from({length:24},function(_,h){return h%6===0?h+'h':'';});
@@ -1122,11 +1183,10 @@ function updateAna(){
     return '<div class="bar-wrap"><div class="bar" style="height:'+pct+'%;background:'+(cnt>0?'#00f0a099':'#172130')+'"></div><div class="bar-lbl">'+labels[i]+'</div></div>';
   }).join('');
 
-  // Cycle log
   var clog=g('cycle-log');
   if(!filtered.length){clog.innerHTML='<div style="color:#3d5470">Nema ciklusa</div>';return;}
   var fmt=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});};
-  clog.innerHTML=filtered.slice(-10).reverse().map(function(c,i){
+  clog.innerHTML=filtered.slice(-10).reverse().map(function(c){
     var dur=c.sec>=60?Math.floor(c.sec/60)+'m '+c.sec%60+'s':c.sec+'s';
     return '<div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:6px;padding:4px 0;border-bottom:1px solid #172130">'+
       '<span style="color:#3d5470">'+fmt(c.onTs)+'</span>'+
@@ -1137,24 +1197,19 @@ function updateAna(){
 }
 
 // ── Log ──────────────────────────────────────────────────────────
-function addLog(msg, sec, relay, color){
-  relayLog.push({ts:Date.now(), msg:msg, sec:sec, relay:relay, color:color});
+function addLog(msg,sec,relay,color){
+  relayLog.push({ts:Date.now(),msg:msg,sec:sec,relay:relay,color:color});
   if(relayLog.length>200) relayLog.shift();
   if(g('pane-log').classList.contains('active')) renderLog();
   g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
 }
-
 function renderLog(){
-  var box=g('log-box');
-  if(!relayLog.length){box.innerHTML='<div style="color:#3d5470">Nema zapisa</div>';return;}
+  var box=g('log-box'); if(!relayLog.length){box.innerHTML='<div style="color:#3d5470">Nema zapisa</div>';return;}
   var fmtT=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});};
-  box.innerHTML=relayLog.slice(-100).map(function(e){
-    return '<div><span style="color:#3d5470">['+fmtT(e.ts)+']</span> <span style="color:'+e.color+'">'+e.msg+'</span></div>';
-  }).join('');
+  box.innerHTML=relayLog.slice(-100).map(function(e){return '<div><span style="color:#3d5470">['+fmtT(e.ts)+']</span> <span style="color:'+e.color+'">'+e.msg+'</span></div>';}).join('');
   box.scrollTop=box.scrollHeight;
 }
-
-function clearLog(){relayLog=[]; renderLog(); g('log-cnt').textContent='LOG (0 zapisa)';}
+function clearLog(){ relayLog=[]; renderLog(); g('log-cnt').textContent='LOG (0 zapisa)'; }
 
 // ── CSV Export ───────────────────────────────────────────────────
 function exportCSV(){
@@ -1164,28 +1219,16 @@ function exportCSV(){
   kHist.forEach(function(d){csv+=fmtDT(d.ts)+',Keezer,'+d.temp+','+d.sp+'\n';});
   csv+='\nTimestamp,Sekcija,Relay,Poruka\n';
   relayLog.forEach(function(e){csv+=fmtDT(e.ts)+','+e.sec+','+e.relay+','+e.msg+'\n';});
-  csv+='\nTimestamp,ON,OFF,Trajanje(s)\n';
-  cycles.forEach(function(c){csv+=fmtDT(c.onTs)+','+fmtDT(c.onTs)+','+fmtDT(c.offTs)+','+c.sec+'\n';});
+  csv+='\nTimestamp ON,Timestamp OFF,Trajanje(s)\n';
+  cycles.forEach(function(c){csv+=fmtDT(c.onTs)+','+fmtDT(c.offTs)+','+c.sec+'\n';});
   var a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='fermentation_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
 }
 
-// ── Telegram ─────────────────────────────────────────────────────
-async function sendTelegram(msg){
-  try{
-    var encoded=encodeURIComponent(msg);
-    await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage?chat_id='+TG_CHAT+'&text='+encoded);
-  }catch(e){}
-}
-
-function sendTelegramTest(){
-  sendTelegram('Test poruka od FermentController PWA! Sve radi.');
-}
-
 // ── Tabs ─────────────────────────────────────────────────────────
-function switchTab(name, btn){
+function switchTab(name,btn){
   document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   g('pane-'+name).classList.add('active');
@@ -1197,12 +1240,13 @@ function switchTab(name, btn){
 
 // ── Init ─────────────────────────────────────────────────────────
 loadConfig().then(function(){
+  loadBatch();
+  loadFermHistory();
   poll();
   setInterval(poll, 3000);
+  setInterval(updateFermSession, 10000); // update timer svaki 10s
 });
-window.addEventListener('resize', function(){
-  if(g('pane-chart').classList.contains('active')) drawMainChart();
-});
+window.addEventListener('resize',function(){ if(g('pane-chart').classList.contains('active')) drawMainChart(); });
 </script>
 </body>
 </html>
