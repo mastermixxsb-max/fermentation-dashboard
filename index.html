@@ -560,34 +560,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
         <button onclick="exportObsProfile()" style="width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid var(--warn);background:rgba(245,158,11,.1);color:var(--warn);cursor:pointer;font-family:var(--mono);font-size:9px">Export profila</button>
       </div>
     </div>
-    <!-- Observation mod -->
-    <div class="set-card" style="grid-column:1/-1;border-color:rgba(245,158,11,.3)">
-      <div class="set-title" style="color:var(--warn)">OBSERVATION MOD (UČENJE)</div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
-        Relaji isključeni — ESP samo snima temperature.<br>
-        Sustav uči kako keezer radi s postojećim STC kontrolerom.<br>
-        Nakon 1-2 dana ima profil za prediktivno upravljanje.
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:10px;color:var(--text)">Status: <span id="obs-status-lbl" style="color:var(--muted)">ISKLJUČEN</span></div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px" id="obs-duration-lbl"></div>
-        </div>
-        <button id="obs-toggle-btn" class="tbtn" onclick="toggleObsMode()" style="color:var(--warn);border-color:var(--warn)">UKLJUČI</button>
-      </div>
-      <div id="obs-stats" style="display:none">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
-          <div class="obs-stat"><div class="obs-stat-k">CIKLUSA</div><div class="obs-stat-v" id="obs-cycles">0</div></div>
-          <div class="obs-stat"><div class="obs-stat-k">AVG TRAJANJE</div><div class="obs-stat-v" id="obs-avg-dur">-</div></div>
-          <div class="obs-stat"><div class="obs-stat-k">RISE RATE</div><div class="obs-stat-v" id="obs-rise">-</div></div>
-          <div class="obs-stat"><div class="obs-stat-k">PULL-DOWN</div><div class="obs-stat-v" id="obs-pull">-</div></div>
-        </div>
-        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DETEKTIRANI CIKLUSI</div>
-        <div id="obs-cycle-log" class="log-box" style="height:120px"></div>
-        <button onclick="exportObsProfile()" style="width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid var(--warn);background:rgba(245,158,11,.1);color:var(--warn);cursor:pointer;font-family:var(--mono);font-size:9px">Export profila</button>
-      </div>
-    </div>
-    <!-- Telegram -->
+        <!-- Telegram -->
     <div class="set-card">
       <div class="set-title">TELEGRAM</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
