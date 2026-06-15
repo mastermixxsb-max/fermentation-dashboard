@@ -695,17 +695,34 @@ function runLogic(ts){
   var f=st.ferm, k=st.keezer, s=st.settings;
   var fTemp = f.testMode ? f.testTemp : f.temp;
   var r1 = f.relay;
-  if(f.en && fTemp!==null){
-    var fDiff = fTemp - f.sp;
-    if(f.heat){ if(fDiff<-f.hy) r1=true; else if(fDiff>f.hy) r1=false; }
-    else       { if(fDiff>f.hy)  r1=true; else if(fDiff<-f.hy) r1=false; }
-    f.alarm = Math.abs(fDiff) > f.al;
-  } else { r1=false; f.alarm=false; }
 
   var kTemp = k.testMode ? k.testTemp : k.temp;
   var r2 = k.relay;
-  var inDelay = compOffTs>0 && (ts-compOffTs)<(s.compDelay*60000);
+
+  // ── Zaštite kompresora ──────────────────────────────────────
+  var compDelayMs = s.compDelay * 60000;
+  var minOnMs     = 30000;  // minimalno 30s ON prije isključivanja
+  var inDelay     = compOffTs>0 && (ts-compOffTs)<compDelayMs;
+  var inMinOn     = window._keezerOnTs && (ts-window._keezerOnTs)<minOnMs;
   k.compDelay = inDelay;
+
+  // Ista zaštita za R1 (ferm) — minimalno ON/OFF vrijeme
+  var r1MinOnMs  = 30000;  // 30s min ON
+  var r1MinOffMs = 60000;  // 60s min OFF (grijač ne klika kao komp)
+  var r1InMinOn  = window._r1OnTs  && (ts-window._r1OnTs)<r1MinOnMs;
+  var r1InMinOff = window._r1OffTs && (ts-window._r1OffTs)<r1MinOffMs;
+
+  // Ferm logika s minimalnim ON/OFF
+  if(f.en && fTemp!==null){
+    var fDiff = fTemp - f.sp;
+    var wantR1 = r1;
+    if(f.heat){ if(fDiff<-f.hy) wantR1=true; else if(fDiff>f.hy) wantR1=false; }
+    else       { if(fDiff>f.hy)  wantR1=true; else if(fDiff<-f.hy) wantR1=false; }
+    // Primijeni samo ako nije u zaštitnom periodu
+    if(wantR1 && !r1 && !r1InMinOff) r1=true;
+    else if(!wantR1 && r1 && !r1InMinOn) r1=false;
+    f.alarm = Math.abs(fDiff) > f.al;
+  } else { r1=false; f.alarm=false; }
 
   if(kTemp!==null && kTemp>k.sp+s.safeLimit && !keezerSafeMode){
     keezerSafeMode=true; k.safe=true;
@@ -714,18 +731,23 @@ function runLogic(ts){
   }
   if(!keezerSafeMode && !inDelay && k.en && kTemp!==null){
     var kDiff = kTemp-k.sp;
-    if(kDiff>k.hy) r2=true;
-    if(kDiff<-k.hy) r2=false;
+    var wantR2 = r2;
+    if(kDiff>k.hy) wantR2=true;
+    if(kDiff<-k.hy) wantR2=false;
+    // Primijeni isključivanje samo ako nije u min ON periodu
+    if(wantR2 && !r2) r2=true;               // uključivanje — ok odmah (delay već provjeren)
+    else if(!wantR2 && r2 && !inMinOn) r2=false;  // isključivanje — čekaj min ON
     k.alarm = Math.abs(kDiff)>k.al;
   } else {
     if(keezerSafeMode||!k.en) r2=false;
     if(!keezerSafeMode) k.alarm=false;
   }
 
-  // Praćenje ciklusa
+  // Praćenje ciklusa + timestamp zaštite
   if(r2!==k.relay){
     if(!r2&&k.relay){
       compOffTs=ts;
+      window._r2OffTs=ts;
       if(window._keezerOnTs){
         var dur=Math.round((ts-window._keezerOnTs)/1000);
         cycles.push({onTs:window._keezerOnTs,offTs:ts,sec:dur});
@@ -733,10 +755,14 @@ function runLogic(ts){
         window._keezerOnTs=null;
       }
     }
-    if(r2&&!k.relay) window._keezerOnTs=ts;
+    if(r2&&!k.relay){ window._keezerOnTs=ts; }
     addLog('Keezer R2 '+(r2?'ON':'OFF'),'Keezer','R2',r2?'#00f0a0':'#3d5470');
   }
-  if(r1!==f.relay) addLog('Ferm R1 '+(r1?'ON':'OFF'),'Ferm','R1',r1?'#ff6b35':'#3d5470');
+  if(r1!==f.relay){
+    if(!r1&&f.relay) window._r1OffTs=ts;
+    if(r1&&!f.relay) window._r1OnTs=ts;
+    addLog('Ferm R1 '+(r1?'ON':'OFF'),'Ferm','R1',r1?'#ff6b35':'#3d5470');
+  }
 
   // Telegram alarmi s cooldownom
   if(f.alarm && f.en)  sendTelegram('ferm_alarm','🌡 FERMENTACIJA ALARM!\nTemp: '+fTemp.toFixed(1)+'°C (SP: '+f.sp.toFixed(1)+'°C)');
