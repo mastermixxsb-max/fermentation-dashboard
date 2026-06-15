@@ -150,6 +150,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);padding:12px 16px;flex-direction:column;gap:8px;z-index:200}
 .install-banner.show{display:flex}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.obs-stat{background:#060b11;border-radius:8px;padding:8px 10px;border:1px solid var(--border);text-align:center}
+.obs-stat-k{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:2px}
+.obs-stat-v{font-size:14px;font-family:var(--head);font-weight:700;color:var(--warn)}
+/* Observation mod */
+.obs-badge{display:inline-block;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.15);border:1px solid var(--warn);color:var(--warn);font-size:9px;letter-spacing:1px;animation:pulse 2s infinite}
+.obs-card{background:var(--panel);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.obs-stat{background:#060b11;border-radius:8px;padding:8px 10px;border:1px solid var(--border);text-align:center}
+.obs-stat-k{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:2px}
+.obs-stat-v{font-size:14px;font-family:var(--head);font-weight:700;color:var(--warn)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -521,6 +530,60 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
         </div>
       </div>
     </div>
+    <!-- Observation mod -->
+    <div class="set-card" style="grid-column:1/-1;border-color:rgba(245,158,11,.3)">
+      <div class="set-title" style="color:var(--warn)">OBSERVATION MOD (UČENJE)</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
+        Relaji isključeni — ESP samo snima temperature.<br>
+        Sustav uči kako keezer radi s postojećim STC kontrolerom.<br>
+        Nakon 1-2 dana ima profil za prediktivno upravljanje.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:10px;color:var(--text)">Status: <span id="obs-status-lbl" style="color:var(--muted)">ISKLJUČEN</span></div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px" id="obs-duration-lbl"></div>
+        </div>
+        <button id="obs-toggle-btn" class="tbtn" onclick="toggleObsMode()" style="color:var(--warn);border-color:var(--warn)">UKLJUČI</button>
+      </div>
+      <div id="obs-stats" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+          <div class="obs-stat"><div class="obs-stat-k">CIKLUSA</div><div class="obs-stat-v" id="obs-cycles">0</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">AVG TRAJANJE</div><div class="obs-stat-v" id="obs-avg-dur">-</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">RISE RATE</div><div class="obs-stat-v" id="obs-rise">-</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">PULL-DOWN</div><div class="obs-stat-v" id="obs-pull">-</div></div>
+        </div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DETEKTIRANI CIKLUSI</div>
+        <div id="obs-cycle-log" class="log-box" style="height:120px"></div>
+        <button onclick="exportObsProfile()" style="width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid var(--warn);background:rgba(245,158,11,.1);color:var(--warn);cursor:pointer;font-family:var(--mono);font-size:9px">Export profila</button>
+      </div>
+    </div>
+    <!-- Observation mod -->
+    <div class="set-card" style="grid-column:1/-1;border-color:rgba(245,158,11,.3)">
+      <div class="set-title" style="color:var(--warn)">OBSERVATION MOD (UČENJE)</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
+        Relaji isključeni — ESP samo snima temperature.<br>
+        Sustav uči kako keezer radi s postojećim STC kontrolerom.<br>
+        Nakon 1-2 dana ima profil za prediktivno upravljanje.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:10px;color:var(--text)">Status: <span id="obs-status-lbl" style="color:var(--muted)">ISKLJUČEN</span></div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px" id="obs-duration-lbl"></div>
+        </div>
+        <button id="obs-toggle-btn" class="tbtn" onclick="toggleObsMode()" style="color:var(--warn);border-color:var(--warn)">UKLJUČI</button>
+      </div>
+      <div id="obs-stats" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+          <div class="obs-stat"><div class="obs-stat-k">CIKLUSA</div><div class="obs-stat-v" id="obs-cycles">0</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">AVG TRAJANJE</div><div class="obs-stat-v" id="obs-avg-dur">-</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">RISE RATE</div><div class="obs-stat-v" id="obs-rise">-</div></div>
+          <div class="obs-stat"><div class="obs-stat-k">PULL-DOWN</div><div class="obs-stat-v" id="obs-pull">-</div></div>
+        </div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DETEKTIRANI CIKLUSI</div>
+        <div id="obs-cycle-log" class="log-box" style="height:120px"></div>
+        <button onclick="exportObsProfile()" style="width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid var(--warn);background:rgba(245,158,11,.1);color:var(--warn);cursor:pointer;font-family:var(--mono);font-size:9px">Export profila</button>
+      </div>
+    </div>
     <!-- Telegram -->
     <div class="set-card">
       <div class="set-title">TELEGRAM</div>
@@ -748,6 +811,7 @@ async function poll(){
     st.keezer.temp = st.keezer.testMode ? st.keezer.testTemp : sensors.keezer_temp;
     kHist.push({ts:ts, temp:st.keezer.temp, sp:st.keezer.sp});
     if(kHist.length>MAX_HIST) kHist.shift();
+    obsAnalyze(ts, st.keezer.temp);
   }
   if(!blocked){
     if(sensors.ferm_cal !== undefined) st.ferm.cal = sensors.ferm_cal;
@@ -858,6 +922,8 @@ function runLogic(ts){
     }
   }
 
+  // Observation mod — blokiraj R2 (keezer), dozvoli R1 (ferm)
+  if(obsMode) r2 = false;
   fbSet('/relays',{r1:r1,r2:r2,ferm_alarm:f.alarm,keezer_alarm:k.alarm,keezer_safe:keezerSafeMode,ferm_cal:f.cal,keezer_cal:k.cal});
 }
 
@@ -1024,6 +1090,7 @@ async function loadSettings(){
   if(s.safeLimit!==undefined) st.settings.safeLimit=s.safeLimit;
   if(s.riseRate!==undefined) st.settings.riseRate=s.riseRate;
   if(s.compWatt!==undefined){ compWatt=s.compWatt; if(g("comp-w-lbl")) g("comp-w-lbl").textContent=compWatt+"W"; }
+  if(s.obsMode!==undefined && s.obsMode && !obsMode){ obsMode=true; obsStartTs=Date.now(); updateObsUI(); }
   updateUI(); updateSettings();
 }
 
@@ -1409,6 +1476,202 @@ function switchTab(name,btn){
   if(name==='chart') setTimeout(drawMainChart,60);
   if(name==='log') renderLog();
   if(name==='ana') updateAna();
+}
+
+
+// ── Observation mod ───────────────────────────────────────────
+var obsMode = false;
+var obsStartTs = 0;
+var obsCycles = [];         // detektirani ciklusi iz temp grafa
+var obsLastTemp = null;
+var obsLastTs = null;
+var obsCompOn = false;      // procijenjeno stanje kompresora
+var obsCompOnTs = null;
+var obsTempBuffer = [];     // buffer za analizu trenda (zadnjih 10 očitanja)
+var obsRiseRates = [];      // izmjereni rise ratei kad je komp OFF
+var obsPullRates = [];      // izmjereni pull-down ratei kad je komp ON
+
+function toggleObsMode(){
+  obsMode = !obsMode;
+  if(obsMode){
+    obsStartTs = Date.now();
+    obsCycles = [];
+    obsLastTemp = null;
+    obsCompOn = false;
+    obsCompOnTs = null;
+    obsTempBuffer = [];
+    obsRiseRates = [];
+    obsPullRates = [];
+    addLog('Observation mod UKLJUČEN — relaji blokirani','Keezer','OBS','#f59e0b');
+    sendTelegram('obs_start','📊 Observation mod uključen — učim keezer profil');
+    fbSet('/settings/obsMode', true);
+  } else {
+    addLog('Observation mod ISKLJUČEN','Keezer','OBS','#3d5470');
+    fbSet('/settings/obsMode', false);
+    // Spremi profil u Firebase
+    if(obsCycles.length > 0) saveObsProfile();
+  }
+  updateObsUI();
+  saveSettings();
+}
+
+function updateObsUI(){
+  var lbl = g('obs-status-lbl');
+  var btn = g('obs-toggle-btn');
+  var stats = g('obs-stats');
+  var durLbl = g('obs-duration-lbl');
+  if(!lbl) return;
+
+  if(obsMode){
+    lbl.textContent = 'AKTIVAN'; lbl.style.color = 'var(--warn)';
+    btn.textContent = 'ISKLJUČI'; btn.className = 'tbtn on';
+    stats.style.display = 'block';
+    var dur = Math.floor((Date.now()-obsStartTs)/60000);
+    durLbl.textContent = 'Traje: '+dur+' min | Snimljeno: '+obsCycles.length+' ciklusa';
+  } else {
+    lbl.textContent = 'ISKLJUČEN'; lbl.style.color = 'var(--muted)';
+    btn.textContent = 'UKLJUČI'; btn.className = 'tbtn';
+    durLbl.textContent = '';
+    if(obsCycles.length > 0) stats.style.display = 'block';
+    else stats.style.display = 'none';
+  }
+
+  // Ažuriraj statistiku
+  if(obsCycles.length > 0){
+    var avgDur = Math.round(obsCycles.reduce(function(a,b){return a+b.durSec;},0)/obsCycles.length);
+    g('obs-cycles').textContent = obsCycles.length;
+    g('obs-avg-dur').textContent = avgDur>60?Math.floor(avgDur/60)+'m'+avgDur%60+'s':avgDur+'s';
+  }
+  if(obsRiseRates.length > 0){
+    var avgRise = (obsRiseRates.reduce(function(a,b){return a+b;},0)/obsRiseRates.length).toFixed(3);
+    g('obs-rise').textContent = avgRise+'°/min';
+  }
+  if(obsPullRates.length > 0){
+    var avgPull = (obsPullRates.reduce(function(a,b){return a+b;},0)/obsPullRates.length).toFixed(3);
+    g('obs-pull').textContent = avgPull+'°/min';
+  }
+
+  // Cycle log
+  var clog = g('obs-cycle-log');
+  if(clog && obsCycles.length > 0){
+    var fmt = function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});};
+    clog.innerHTML = obsCycles.slice(-8).reverse().map(function(c){
+      return '<div style="display:grid;grid-template-columns:60px 50px 50px 1fr;gap:4px;padding:3px 0;border-bottom:1px solid #172130;font-size:9px">'+
+        '<span style="color:#3d5470">'+fmt(c.onTs)+'</span>'+
+        '<span style="color:#00f0a0">'+Math.round(c.durSec)+'s</span>'+
+        '<span style="color:var(--cool)">'+c.minTemp.toFixed(1)+'→'+c.maxTemp.toFixed(1)+'°</span>'+
+        '<span style="color:var(--warn)">↓'+c.pullRate.toFixed(3)+' ↑'+c.riseRate.toFixed(3)+'°/m</span>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+// Analiza temperature — poziva se iz poll() svake 3s
+function obsAnalyze(ts, keezerTemp){
+  if(!obsMode || keezerTemp === null) return;
+
+  obsTempBuffer.push({ts:ts, temp:keezerTemp});
+  if(obsTempBuffer.length > 20) obsTempBuffer.shift();
+
+  if(obsTempBuffer.length < 4) return;
+
+  // Izračunaj trend zadnjih 4 točaka (°C/min)
+  var recent = obsTempBuffer.slice(-4);
+  var dt = (recent[3].ts - recent[0].ts) / 60000; // minute
+  var dTemp = recent[3].temp - recent[0].temp;
+  var rate = dt > 0 ? dTemp / dt : 0;
+
+  // Detekcija: pad > 0.05°/min → kompresor ON
+  //           rast > 0.01°/min → kompresor OFF
+  if(!obsCompOn && rate < -0.05){
+    // Kompresor se upravo uključio
+    obsCompOn = true;
+    obsCompOnTs = ts;
+    obsCompOnTemp = keezerTemp;
+    // Izračunaj rise rate od prethodnog ciklusa
+    if(obsLastCompOffTs && obsLastCompOffTemp !== undefined){
+      var riseTime = (ts - obsLastCompOffTs) / 60000;
+      var riseTemp = keezerTemp - obsLastCompOffTemp;
+      if(riseTime > 0.5 && riseTemp > 0) {
+        var rr = riseTemp / riseTime;
+        obsRiseRates.push(rr);
+        if(obsRiseRates.length > 50) obsRiseRates.shift();
+      }
+    }
+  } else if(obsCompOn && rate > 0.01){
+    // Kompresor se upravo isključio
+    obsCompOn = false;
+    var durSec = (ts - obsCompOnTs) / 1000;
+    var minTemp = Math.min.apply(null, obsTempBuffer.slice(-8).map(function(d){return d.temp;}));
+    // Pull-down rate
+    var pullTime = (ts - obsCompOnTs) / 60000;
+    var pullTemp = obsCompOnTemp - keezerTemp;
+    var pr = pullTime > 0 ? Math.abs(pullTemp / pullTime) : 0;
+    obsPullRates.push(pr);
+    if(obsPullRates.length > 50) obsPullRates.shift();
+    // Spremi ciklus
+    if(durSec > 30){
+      obsCycles.push({
+        onTs: obsCompOnTs, offTs: ts,
+        durSec: durSec,
+        minTemp: minTemp,
+        maxTemp: obsCompOnTemp,
+        pullRate: pr,
+        riseRate: obsRiseRates.length>0 ? obsRiseRates[obsRiseRates.length-1] : 0
+      });
+      if(obsCycles.length > 200) obsCycles.shift();
+    }
+    obsLastCompOffTs = ts;
+    obsLastCompOffTemp = keezerTemp;
+  }
+
+  obsLastTemp = keezerTemp;
+  obsLastTs = ts;
+
+  // Update UI svake minute
+  if(!window._obsLastUiUpdate || (ts - window._obsLastUiUpdate) > 60000){
+    updateObsUI();
+    window._obsLastUiUpdate = ts;
+  }
+}
+
+// Spremi naučeni profil u Firebase
+function saveObsProfile(){
+  var avgRise = obsRiseRates.length>0 ? obsRiseRates.reduce(function(a,b){return a+b;},0)/obsRiseRates.length : 0;
+  var avgPull = obsPullRates.length>0 ? obsPullRates.reduce(function(a,b){return a+b;},0)/obsPullRates.length : 0;
+  var avgDur  = obsCycles.length>0 ? obsCycles.reduce(function(a,b){return a+b.durSec;},0)/obsCycles.length : 0;
+  var profile = {
+    learnedTs: Date.now(),
+    cycles: obsCycles.length,
+    avgCycleSec: Math.round(avgDur),
+    avgRiseRate: parseFloat(avgRise.toFixed(4)),
+    avgPullRate: parseFloat(avgPull.toFixed(4)),
+    stcSP: 5.0,
+    stcHy: 1.0,
+    rawCycles: obsCycles.slice(-50)
+  };
+  fbSet('/keezer_profile', profile);
+  addLog('Keezer profil spremljen: '+obsCycles.length+' ciklusa, rise='+avgRise.toFixed(3)+'°/min','Keezer','OBS','#f59e0b');
+  sendTelegram('obs_done','📊 Keezer profil naučen!
+'+obsCycles.length+' ciklusa
+Rise: '+avgRise.toFixed(3)+'°/min
+Pull-down: '+avgPull.toFixed(3)+'°/min');
+}
+
+function exportObsProfile(){
+  var csv = 'OnTs,OffTs,DurSec,MinTemp,MaxTemp,PullRate,RiseRate
+';
+  obsCycles.forEach(function(c){
+    csv += new Date(c.onTs).toLocaleString('hr-HR')+','+
+           new Date(c.offTs).toLocaleString('hr-HR')+','+
+           Math.round(c.durSec)+','+c.minTemp.toFixed(2)+','+c.maxTemp.toFixed(2)+','+
+           c.pullRate.toFixed(4)+','+c.riseRate.toFixed(4)+'
+';
+  });
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'keezer_profile_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
 }
 
 // ── Init ─────────────────────────────────────────────────────────
