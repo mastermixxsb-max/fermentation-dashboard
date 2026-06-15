@@ -360,7 +360,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   </div>
   <!-- kW potrošnja -->
   <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
-    <span>POTROŠNJA KEEZERA (Gorenje ~100W)</span>
+    <span>POTROŠNJA KEEZERA (Gorenje FH301CW ~75W)</span>
     <div style="display:flex;align-items:center;gap:4px">
       <button class="cbtn" style="color:var(--keezer)" onclick="adjCompW(-10)">-</button>
       <span style="font-size:10px;color:var(--keezer)" id="comp-w-lbl">100W</span>
@@ -595,7 +595,7 @@ var lastUserInput = 0;
 var USER_BLOCK = 10000;
 var compOffTs = 0;
 var keezerSafeMode = false;
-var compWatt = 100; // Gorenje default
+var compWatt = 75; // Gorenje default
 
 // Batch / Serija - iz Firebase (ne localStorage)
 var batch = null;
