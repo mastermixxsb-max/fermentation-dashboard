@@ -171,16 +171,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <span style="color:var(--muted);margin:0 6px">+</span>
     <span style="color:var(--keezer)">Keezer</span>
   </div>
-  <div style="flex:1;display:flex;justify-content:center">
+  <div style="flex:1;display:flex;justify-content:center;align-items:center;gap:8px">
     <div class="header-clock">
       <div class="htime" id="hdr-time">--:--:--</div>
       <div id="hdr-date">--.--.----</div>
     </div>
+    <button id="refresh-btn" onclick="forceRefresh()" title="Reload postavki iz Firebase"
+      style="background:transparent;border:1px solid var(--border);border-radius:50%;width:22px;height:22px;color:var(--muted);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:.3s;flex-shrink:0">↺</button>
   </div>
   <div class="header-right">
     <div id="af" class="alarm-b">F ALARM</div>
     <div id="ak" class="alarm-b">K ALARM</div>
     <button class="hbtn" onclick="exportCSV()">CSV</button>
+    <div id="sync-indicator" style="font-size:9px;color:var(--ferm);opacity:0;transition:opacity .3s;letter-spacing:1px">SYNC</div>
     <div id="conn" class="conn-dot" title="Firebase"></div>
     <div id="hb-info" style="font-size:9px;color:var(--muted);letter-spacing:1px" title="ESP32 heartbeat">ESP --</div>
   </div>
@@ -827,6 +830,18 @@ async function poll(){
   updateFermSession();
   if(g('pane-chart').classList.contains('active')) drawMainChart();
   if(g('pane-ana').classList.contains('active')) updateAna();
+
+  // Auto-sync postavki svake 30s (bez user input bloka)
+  if(!window._lastSettingsSync || (ts - window._lastSettingsSync) > 30000){
+    window._lastSettingsSync = ts;
+    // Čitaj samo ako korisnik nije mijenjao postavke zadnjih 15s
+    if((ts - lastUserInput) > 15000){
+      loadSettings().then(function(){
+        var syncEl = g('sync-indicator');
+        if(syncEl){ syncEl.style.opacity='1'; setTimeout(function(){ syncEl.style.opacity='0'; }, 1000); }
+      });
+    }
+  }
 }
 
 // ── Relay Logic ───────────────────────────────────────────────────
@@ -1059,6 +1074,8 @@ function renderFermHistory(){
 
 // ── Settings sync Firebase ────────────────────────────────────────
 function saveSettings(){
+  var now = Date.now();
+  lastUserInput = now;  // postavi user input blok
   fbSet("/settings",{
     ferm_sp:st.ferm.sp,ferm_hy:st.ferm.hy,ferm_al:st.ferm.al,
     ferm_en:st.ferm.en,ferm_heat:st.ferm.heat,
@@ -1067,7 +1084,9 @@ function saveSettings(){
     keezer_en:st.keezer.en,
     keezer_testMode:st.keezer.testMode,keezer_testTemp:st.keezer.testTemp,
     compDelay:st.settings.compDelay,safeLimit:st.settings.safeLimit,riseRate:st.settings.riseRate,
-    compWatt:compWatt
+    compWatt:compWatt,
+    lastModified: Date.now(),
+    modifiedBy: navigator.userAgent.includes('Mobile')?'mobile':'desktop'
   });
 }
 async function loadSettings(){
@@ -1672,6 +1691,18 @@ function exportObsProfile(){
   a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download = 'keezer_profile_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
+}
+
+// ── Force refresh ────────────────────────────────────────────
+async function forceRefresh(){
+  var btn = g('refresh-btn');
+  if(btn){ btn.style.transform='rotate(360deg)'; btn.style.transition='transform .5s'; btn.style.color='var(--ferm)'; }
+  await loadSettings();
+  await loadBatch();
+  var syncEl = g('sync-indicator');
+  if(syncEl){ syncEl.style.opacity='1'; setTimeout(function(){ syncEl.style.opacity='0'; },1500); }
+  setTimeout(function(){ if(btn){ btn.style.transform=''; btn.style.transition=''; btn.style.color='var(--muted)'; } }, 600);
+  addLog('Force refresh — postavke učitane iz Firebase','SYS','SYNC','#00d4ff');
 }
 
 // ── Init ─────────────────────────────────────────────────────────
