@@ -1286,14 +1286,44 @@ function switchTab(name,btn){
 }
 
 // ── Init ─────────────────────────────────────────────────────────
-loadConfig().then(function(){
-  loadSettings();
-  loadBatch();
-  loadFermHistory();
-  poll();
+async function init(){
+  // Loading overlay
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="loading-overlay" style="position:fixed;inset:0;background:#080d12;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px">'+
+    '<div style="font-family:Rajdhani,sans-serif;font-size:22px;font-weight:700;color:#00d4ff">FerCtrl</div>'+
+    '<div style="font-size:11px;color:#3d5470;letter-spacing:2px" id="loading-msg">Učitavam config...</div>'+
+    '<div style="width:120px;height:2px;background:#172130;border-radius:2px"><div id="loading-bar" style="height:100%;width:0%;background:#00d4ff;border-radius:2px;transition:width .3s"></div></div>'+
+    '</div>');
+  var setMsg = function(msg, pct){
+    var el = document.getElementById('loading-msg');
+    var bar = document.getElementById('loading-bar');
+    if(el) el.textContent = msg;
+    if(bar) bar.style.width = pct + '%';
+  };
+
+  setMsg('Firebase config...', 10);
+  await loadConfig();
+
+  setMsg('Učitavam postavke...', 35);
+  await loadSettings();
+
+  setMsg('Učitavam seriju...', 60);
+  await loadBatch();
+
+  setMsg('Historija fermentacija...', 80);
+  await loadFermHistory();
+
+  setMsg('Spajam na Firebase...', 95);
+  await poll();
+
+  // Ukloni overlay
+  var ov = document.getElementById('loading-overlay');
+  if(ov) ov.remove();
+
   setInterval(poll, 3000);
-  setInterval(updateFermSession, 10000); // update timer svaki 10s
-});
+  setInterval(updateFermSession, 10000);
+}
+init();
 window.addEventListener('resize',function(){ if(g('pane-chart').classList.contains('active')) drawMainChart(); });
 </script>
 </body>
