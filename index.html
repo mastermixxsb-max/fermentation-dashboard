@@ -912,19 +912,55 @@ function renderFermHistory(){
   }).join('');
 }
 
+// ── Settings sync Firebase ────────────────────────────────────────
+function saveSettings(){
+  fbSet("/settings",{
+    ferm_sp:st.ferm.sp,ferm_hy:st.ferm.hy,ferm_al:st.ferm.al,
+    ferm_en:st.ferm.en,ferm_heat:st.ferm.heat,
+    ferm_testMode:st.ferm.testMode,ferm_testTemp:st.ferm.testTemp,
+    keezer_sp:st.keezer.sp,keezer_hy:st.keezer.hy,keezer_al:st.keezer.al,
+    keezer_en:st.keezer.en,
+    keezer_testMode:st.keezer.testMode,keezer_testTemp:st.keezer.testTemp,
+    compDelay:st.settings.compDelay,safeLimit:st.settings.safeLimit,riseRate:st.settings.riseRate,
+    compWatt:compWatt
+  });
+}
+async function loadSettings(){
+  var s=await fbGet("/settings");
+  if(!s) return;
+  if(s.ferm_sp!==undefined) st.ferm.sp=s.ferm_sp;
+  if(s.ferm_hy!==undefined) st.ferm.hy=s.ferm_hy;
+  if(s.ferm_al!==undefined) st.ferm.al=s.ferm_al;
+  if(s.ferm_en!==undefined) st.ferm.en=s.ferm_en;
+  if(s.ferm_heat!==undefined) st.ferm.heat=s.ferm_heat;
+  if(s.ferm_testMode!==undefined) st.ferm.testMode=s.ferm_testMode;
+  if(s.ferm_testTemp!==undefined) st.ferm.testTemp=s.ferm_testTemp;
+  if(s.keezer_sp!==undefined) st.keezer.sp=s.keezer_sp;
+  if(s.keezer_hy!==undefined) st.keezer.hy=s.keezer_hy;
+  if(s.keezer_al!==undefined) st.keezer.al=s.keezer_al;
+  if(s.keezer_en!==undefined) st.keezer.en=s.keezer_en;
+  if(s.keezer_testMode!==undefined) st.keezer.testMode=s.keezer_testMode;
+  if(s.keezer_testTemp!==undefined) st.keezer.testTemp=s.keezer_testTemp;
+  if(s.compDelay!==undefined) st.settings.compDelay=s.compDelay;
+  if(s.safeLimit!==undefined) st.settings.safeLimit=s.safeLimit;
+  if(s.riseRate!==undefined) st.settings.riseRate=s.riseRate;
+  if(s.compWatt!==undefined){ compWatt=s.compWatt; if(g("comp-w-lbl")) g("comp-w-lbl").textContent=compWatt+"W"; }
+  updateUI(); updateSettings();
+}
+
 // ── User Controls ────────────────────────────────────────────────
 function adj(sec,param,delta){
   lastUserInput=Date.now();
   var s=st[sec]; var lim={sp:[-5,40],hy:[0.1,3],al:[0.5,10]};
   s[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],s[param]+delta))*10)/10;
-  updateUI();
+  updateUI(); saveSettings();
 }
-function togSec(sec){ lastUserInput=Date.now(); st[sec].en=!st[sec].en; if(!st[sec].en) st[sec].relay=false; updateUI(); }
+function togSec(sec){ lastUserInput=Date.now(); st[sec].en=!st[sec].en; if(!st[sec].en) st[sec].relay=false; updateUI(); saveSettings(); }
 function adjCal(sec,delta){ lastUserInput=Date.now(); st[sec].cal=Math.round(Math.min(5,Math.max(-5,st[sec].cal+delta))*10)/10; fbSet('/relays/'+sec+'_cal',st[sec].cal); updateSettings(); }
-function toggleTest(sec){ lastUserInput=Date.now(); st[sec].testMode=!st[sec].testMode; updateSettings(); updateUI(); }
-function adjTestTemp(sec,delta){ lastUserInput=Date.now(); st[sec].testTemp=Math.round(Math.min(50,Math.max(-10,st[sec].testTemp+delta))*10)/10; updateSettings(); }
-function adjSet(param,delta){ lastUserInput=Date.now(); var lim={compDelay:[0.5,30],safeLimit:[1,20],riseRate:[0.1,5]}; st.settings[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],st.settings[param]+delta))*10)/10; updateSettings(); }
-function adjCompW(delta){ compWatt=Math.max(50,Math.min(500,compWatt+delta)); g('comp-w-lbl').textContent=compWatt+'W'; if(g('pane-ana').classList.contains('active')) updateAna(); }
+function toggleTest(sec){ lastUserInput=Date.now(); st[sec].testMode=!st[sec].testMode; updateSettings(); updateUI(); saveSettings(); }
+function adjTestTemp(sec,delta){ lastUserInput=Date.now(); st[sec].testTemp=Math.round(Math.min(50,Math.max(-10,st[sec].testTemp+delta))*10)/10; updateSettings(); saveSettings(); }
+function adjSet(param,delta){ lastUserInput=Date.now(); var lim={compDelay:[0.5,30],safeLimit:[1,20],riseRate:[0.1,5]}; st.settings[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],st.settings[param]+delta))*10)/10; updateSettings(); saveSettings(); }
+function adjCompW(delta){ compWatt=Math.max(50,Math.min(500,compWatt+delta)); g('comp-w-lbl').textContent=compWatt+'W'; if(g('pane-ana').classList.contains('active')) updateAna(); saveSettings(); }
 
 // ── Mode Modal ───────────────────────────────────────────────────
 function showModeModal(){
@@ -932,7 +968,7 @@ function showModeModal(){
   g('mode-modal-txt').innerHTML='Trenutni mod: <b style="color:'+(f.heat?'#ff6b35':'#38bdf8')+'">'+(f.heat?'GRIJANJE':'HLAĐENJE')+'</b><br>Novi mod: <b style="color:'+(f.heat?'#38bdf8':'#ff6b35')+'">'+(f.heat?'HLAĐENJE':'GRIJANJE')+'</b><br><br><span style="color:#f59e0b">Relay će se isključiti pri promjeni.</span>';
   var btn=g('mode-confirm');
   btn.style.cssText='border:1px solid '+(f.heat?'#38bdf8':'#ff6b35')+';background:'+(f.heat?'rgba(56,189,248,.2)':'rgba(255,107,53,.2)')+';color:'+(f.heat?'#38bdf8':'#ff6b35');
-  btn.onclick=function(){ lastUserInput=Date.now(); st.ferm.heat=!st.ferm.heat; st.ferm.relay=false; addLog('Ferm mod: '+(st.ferm.heat?'GRIJANJE':'HLAĐENJE'),'Ferm','MOD','#00d4ff'); closeModal('mode-modal'); updateUI(); };
+  btn.onclick=function(){ lastUserInput=Date.now(); st.ferm.heat=!st.ferm.heat; st.ferm.relay=false; addLog('Ferm mod: '+(st.ferm.heat?'GRIJANJE':'HLAĐENJE'),'Ferm','MOD','#00d4ff'); closeModal('mode-modal'); updateUI(); saveSettings(); };
   g('mode-modal').classList.add('show');
 }
 function closeModal(id){ g(id).classList.remove('show'); }
@@ -1251,6 +1287,7 @@ function switchTab(name,btn){
 
 // ── Init ─────────────────────────────────────────────────────────
 loadConfig().then(function(){
+  loadSettings();
   loadBatch();
   loadFermHistory();
   poll();
