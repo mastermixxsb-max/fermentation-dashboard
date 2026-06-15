@@ -398,11 +398,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       </div>
     </div>
     <div id="batch-info" style="display:none">
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
         <div class="kpi"><div class="kpi-l">NAZIV</div><div style="font-size:14px;font-family:var(--head);color:var(--ferm)" id="b-name">-</div></div>
-        <div class="kpi"><div class="kpi-l">DAN</div><div class="kpi-v" id="b-day" style="color:var(--cool)">-</div></div>
+        <div class="kpi"><div class="kpi-l">DAN FERMENTACIJE</div><div class="kpi-v" id="b-day" style="color:var(--cool)">-</div></div>
         <div class="kpi"><div class="kpi-l">STIL</div><div style="font-size:12px;font-family:var(--head);color:var(--muted)" id="b-style">-</div></div>
         <div class="kpi"><div class="kpi-l">START</div><div style="font-size:11px;color:var(--muted)" id="b-start">-</div></div>
+        <div class="kpi"><div class="kpi-l">DATUM KUHANJA</div><div style="font-size:11px;color:var(--muted)" id="b-brewdate">-</div></div>
+        <div class="kpi"><div class="kpi-l">KOLIČINA</div><div style="font-size:13px;font-family:var(--head);color:var(--text)" id="b-vol">-</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+        <div class="kpi"><div class="kpi-l">OG</div><div style="font-size:13px;font-family:var(--head);color:var(--warn)" id="b-og-d">-</div></div>
+        <div class="kpi"><div class="kpi-l">FG (cilj)</div><div style="font-size:13px;font-family:var(--head);color:var(--cool)" id="b-fg-d">-</div></div>
+        <div class="kpi"><div class="kpi-l">ABV (est.)</div><div style="font-size:13px;font-family:var(--head);color:var(--ok)" id="b-abv">-</div></div>
+      </div>
+      <div style="background:#060b11;border-radius:8px;border:1px solid var(--border);padding:8px 10px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px">KVASAC</div>
+        <div style="font-size:10px;color:var(--text)" id="b-yeast-d">-</div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-top:4px">HMELJEVI</div>
+        <div style="font-size:10px;color:var(--text)" id="b-hops-d">-</div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-top:4px">SLAD</div>
+        <div style="font-size:10px;color:var(--text)" id="b-malt-d">-</div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;margin-top:4px">BILJEŠKA</div>
+        <div style="font-size:10px;color:var(--muted);font-style:italic" id="b-notes-d">-</div>
       </div>
     </div>
     <div id="batch-empty" style="font-size:11px;color:var(--muted);padding:10px 0">Nema aktivne serije.</div>
@@ -535,25 +552,63 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
 <!-- Batch Modal -->
 <div id="batch-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">Nova serija</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div>
-        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">NAZIV</div>
-        <input id="b-name-input" class="minput" placeholder="npr. IPA #5">
+  <div class="modal" style="max-width:400px;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">🍺 Nova serija</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">NAZIV</div>
+          <input id="b-name-input" class="minput" placeholder="npr. IPA #5">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">STIL</div>
+          <input id="b-style-input" class="minput" placeholder="npr. India Pale Ale">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DATUM KUHANJA</div>
+          <input id="b-brew-date" type="date" class="minput">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">KOLIČINA (L)</div>
+          <input id="b-volume" type="number" class="minput" placeholder="npr. 20" step="0.5">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">OG (početna gustoća)</div>
+          <input id="b-og" type="number" class="minput" placeholder="npr. 1.055" step="0.001">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">FG (ciljna gustoća)</div>
+          <input id="b-fg" type="number" class="minput" placeholder="npr. 1.012" step="0.001">
+        </div>
       </div>
       <div>
-        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">STIL</div>
-        <input id="b-style-input" class="minput" placeholder="npr. India Pale Ale">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">KVASAC</div>
+        <input id="b-yeast" class="minput" placeholder="npr. Wyeast 1056 American Ale">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">HMELJEVI</div>
+        <input id="b-hops" class="minput" placeholder="npr. Cascade 30g, Citra 20g">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">SLAD</div>
+        <input id="b-malt" class="minput" placeholder="npr. Pale Ale 4kg, Crystal 0.5kg">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">BILJEŠKA</div>
+        <input id="b-notes" class="minput" placeholder="Slobodni tekst...">
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#060b11;border-radius:8px;border:1px solid var(--border)">
         <input type="checkbox" id="use-profile" style="accent-color:var(--ferm)">
         <label for="use-profile" style="font-size:10px;color:var(--muted);cursor:pointer">Koristi fermentacijski profil</label>
       </div>
     </div>
-    <div class="modal-btns">
+    <div class="modal-btns" style="margin-top:10px">
       <button onclick="closeModal('batch-modal')" style="border:1px solid var(--border);background:transparent;color:var(--muted)">Odustani</button>
-      <button onclick="startBatch()" style="border:1px solid var(--ferm);background:rgba(0,212,255,.2);color:var(--ferm)">Start</button>
+      <button onclick="startBatch()" style="border:1px solid var(--ferm);background:rgba(0,212,255,.2);color:var(--ferm)">▶ Start</button>
     </div>
   </div>
 </div>
@@ -854,7 +909,15 @@ function stopFermSession(){
     minTemp: parseFloat(minT)||0,
     maxTemp: parseFloat(maxT)||0,
     batchName: batch ? batch.name : '-',
-    style: batch ? (batch.style||'-') : '-'
+    style:     batch ? (batch.style||'-') : '-',
+    brewDate:  batch ? (batch.brewDate||'') : '',
+    volume:    batch ? (batch.volume||0) : 0,
+    og:        batch ? (batch.og||0) : 0,
+    fg:        batch ? (batch.fg||0) : 0,
+    yeast:     batch ? (batch.yeast||'') : '',
+    hops:      batch ? (batch.hops||'') : '',
+    malt:      batch ? (batch.malt||'') : '',
+    notes:     batch ? (batch.notes||'') : ''
   };
   // Spremi u Firebase
   fbPush('/ferm_sessions', rec);
@@ -900,19 +963,31 @@ function renderFermHistory(){
   if(!fermHistory.length){ container.innerHTML='<div style="font-size:11px;color:var(--muted)">Nema prethodnih fermentacija.</div>'; return; }
   var fmtDate = function(ts){ return new Date(ts).toLocaleDateString('hr-HR'); };
   container.innerHTML = fermHistory.map(function(s){
+    var abv = s.og&&s.fg ? ((s.og-s.fg)*131.25).toFixed(1)+'%' : '-';
     return '<div class="session-item">'+
       '<div class="session-head">'+
         '<span class="session-name">'+(s.batchName||'-')+'</span>'+
         '<span style="font-size:9px;color:var(--muted)">'+fmtDate(s.startTs)+'</span>'+
       '</div>'+
-      '<div style="font-size:9px;color:var(--muted)">'+(s.style||'-')+'</div>'+
+      '<div style="font-size:9px;color:var(--muted);margin-bottom:4px">'+(s.style||'-')+
+        (s.volume?' · '+s.volume+'L':'')+
+        (s.brewDate?' · kuhano: '+s.brewDate:'')+
+      '</div>'+
       '<div class="session-stats">'+
         '<div><div class="session-stat-k">Trajanje</div><div class="session-stat-v" style="color:var(--ferm)">'+s.durH+'h</div></div>'+
         '<div><div class="session-stat-k">Avg °C</div><div class="session-stat-v">'+s.avgTemp+'</div></div>'+
         '<div><div class="session-stat-k">Min °C</div><div class="session-stat-v" style="color:var(--cool)">'+s.minTemp+'</div></div>'+
         '<div><div class="session-stat-k">Max °C</div><div class="session-stat-v" style="color:var(--heat)">'+s.maxTemp+'</div></div>'+
       '</div>'+
-    '</div>';
+      (s.og||s.yeast?'<div style="margin-top:6px;padding:6px 8px;background:#060b11;border-radius:6px;border:1px solid var(--border)">'+
+        (s.og?'<span style="font-size:9px;color:var(--muted)">OG:</span> <span style="font-size:9px;color:var(--warn)">'+s.og+'</span> ':'')+
+        (s.fg?'<span style="font-size:9px;color:var(--muted)">FG:</span> <span style="font-size:9px;color:var(--cool)">'+s.fg+'</span> ':'')+
+        (s.og&&s.fg?'<span style="font-size:9px;color:var(--muted)">ABV:</span> <span style="font-size:9px;color:var(--ok)">'+abv+'</span> ':'')+
+        (s.yeast?'<br><span style="font-size:9px;color:var(--muted)">Kvasac: </span><span style="font-size:9px;color:var(--text)">'+s.yeast+'</span>':'')+
+        (s.hops?'<br><span style="font-size:9px;color:var(--muted)">Hmeljevi: </span><span style="font-size:9px;color:var(--text)">'+s.hops+'</span>':'')+
+        (s.malt?'<br><span style="font-size:9px;color:var(--muted)">Slad: </span><span style="font-size:9px;color:var(--text)">'+s.malt+'</span>':'')+
+        (s.notes?'<br><span style="font-size:9px;color:var(--muted);font-style:italic">'+s.notes+'</span>':'')+
+      '</div>':'')+'</div>';
   }).join('');
 }
 
@@ -982,7 +1057,17 @@ function showBatchModal(){ g('batch-modal').classList.add('show'); }
 async function startBatch(){
   var name=g('b-name-input').value.trim(); var style=g('b-style-input').value.trim(); var useProf=g('use-profile').checked;
   if(!name) return;
-  batch={name:name,style:style,startTs:Date.now(),active:true};
+  batch={
+    name:name, style:style, startTs:Date.now(), active:true,
+    brewDate: g('b-brew-date').value || '',
+    volume:   parseFloat(g('b-volume').value) || 0,
+    og:       parseFloat(g('b-og').value) || 0,
+    fg:       parseFloat(g('b-fg').value) || 0,
+    yeast:    g('b-yeast').value.trim(),
+    hops:     g('b-hops').value.trim(),
+    malt:     g('b-malt').value.trim(),
+    notes:    g('b-notes').value.trim()
+  };
   await fbSet('/batch',batch);
   profileEnabled=useProf;
   if(useProf&&profileSteps.length>0) st.ferm.sp=profileSteps[0].sp;
@@ -1014,6 +1099,27 @@ function updateBatch(ts){
     g('b-name').textContent=batch.name; g('b-style').textContent=batch.style||'-';
     g('b-day').textContent=Math.floor((ts-batch.startTs)/86400000)+1+'. dan';
     g('b-start').textContent=new Date(batch.startTs).toLocaleDateString('hr-HR');
+    if(g('b-brewdate')) g('b-brewdate').textContent=batch.brewDate||'-';
+    if(g('b-vol')) g('b-vol').textContent=batch.volume?(batch.volume+'L'):'-';
+    if(g('b-og-d')) g('b-og-d').textContent=batch.og||'-';
+    if(g('b-fg-d')) g('b-fg-d').textContent=batch.fg||'-';
+    if(g('b-abv')){ var abv=batch.og&&batch.fg?((batch.og-batch.fg)*131.25).toFixed(1)+'%':'-'; g('b-abv').textContent=abv; }
+    if(g('b-yeast-d')) g('b-yeast-d').textContent=batch.yeast||'-';
+    if(g('b-hops-d'))  g('b-hops-d').textContent=batch.hops||'-';
+    if(g('b-malt-d'))  g('b-malt-d').textContent=batch.malt||'-';
+    if(g('b-notes-d')) g('b-notes-d').textContent=batch.notes||'-';
+    if(g('b-brewdate')) g('b-brewdate').textContent=batch.brewDate||'-';
+    if(g('b-vol')) g('b-vol').textContent=batch.volume?(batch.volume+'L'):'-';
+    if(g('b-og-d')) g('b-og-d').textContent=batch.og||'-';
+    if(g('b-fg-d')) g('b-fg-d').textContent=batch.fg||'-';
+    if(g('b-abv')){
+      var abv = batch.og&&batch.fg ? ((batch.og-batch.fg)*131.25).toFixed(1)+'%' : '-';
+      g('b-abv').textContent=abv;
+    }
+    if(g('b-yeast-d')) g('b-yeast-d').textContent=batch.yeast||'-';
+    if(g('b-hops-d'))  g('b-hops-d').textContent=batch.hops||'-';
+    if(g('b-malt-d'))  g('b-malt-d').textContent=batch.malt||'-';
+    if(g('b-notes-d')) g('b-notes-d').textContent=batch.notes||'-';
   } else {
     g('batch-empty').style.display='block'; g('batch-info').style.display='none';
     g('batch-start-btn').style.display='block'; g('batch-stop-btn').style.display='none';
