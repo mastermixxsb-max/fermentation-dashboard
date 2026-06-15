@@ -173,6 +173,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <div id="ak" class="alarm-b">K ALARM</div>
     <button class="hbtn" onclick="exportCSV()">CSV</button>
     <div id="conn" class="conn-dot" title="Firebase"></div>
+    <div id="hb-info" style="font-size:9px;color:var(--muted);letter-spacing:1px" title="ESP32 heartbeat">ESP --</div>
   </div>
 </div>
 
@@ -296,6 +297,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
 <!-- GRAF -->
 <div id="pane-chart" class="pane">
+  <!-- Filter gumbi -->
+  <div style="display:flex;gap:4px;margin-bottom:10px;background:var(--panel);border-radius:10px;padding:4px;border:1px solid var(--border)">
+    <button class="tbtn on" style="flex:1;color:var(--ferm)" onclick="setChartFilter(30,this)">30min</button>
+    <button class="tbtn" style="flex:1" onclick="setChartFilter(60,this)">1h</button>
+    <button class="tbtn" style="flex:1" onclick="setChartFilter(180,this)">3h</button>
+    <button class="tbtn" style="flex:1" onclick="setChartFilter(360,this)">6h</button>
+    <button class="tbtn" style="flex:1" onclick="setChartFilter(0,this)">Sve</button>
+  </div>
   <div class="chart-wrap">
     <div class="chart-title" id="chart-lbl">TEMPERATURA LIVE GRAF</div>
     <canvas id="main-chart" style="display:block;width:100%"></canvas>
@@ -583,6 +592,7 @@ var st = {
 };
 
 var fHist=[], kHist=[], relayLog=[], cycles=[];
+var chartFilter = 30; // minuta, 0 = sve
 var anaPeriod = 'dan';
 var lastUserInput = 0;
 var USER_BLOCK = 10000;
@@ -651,6 +661,16 @@ async function poll(){
   var sensors = await fbGet('/sensors');
   if(!sensors){ g('conn').className='conn-dot err'; return; }
   g('conn').className='conn-dot ok';
+  // Heartbeat — kad je ESP32 zadnji put poslao
+  if(sensors.heartbeat){
+    var hbAge = Math.round((Date.now()/1000) - sensors.heartbeat);
+    var hbEl = g('hb-info');
+    if(hbEl){
+      if(hbAge < 10)       { hbEl.textContent='ESP ✓'; hbEl.style.color='var(--ok)'; }
+      else if(hbAge < 30)  { hbEl.textContent='ESP '+hbAge+'s'; hbEl.style.color='var(--warn)'; }
+      else                 { hbEl.textContent='ESP '+hbAge+'s'; hbEl.style.color='var(--danger)'; }
+    }
+  }
   var ts = Date.now();
   var blocked = (ts - lastUserInput) < USER_BLOCK;
 
@@ -1109,6 +1129,19 @@ function drawSpark(id,data,color){
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
 }
 
+function setChartFilter(mins, btn){
+  chartFilter = mins;
+  document.querySelectorAll('#pane-chart .tbtn').forEach(function(b){ b.className='tbtn'; b.style.color=''; });
+  btn.className='tbtn on'; btn.style.color='var(--ferm)';
+  drawMainChart();
+}
+
+function getFilteredHist(hist){
+  if(chartFilter === 0) return hist;
+  var cutoff = Date.now() - chartFilter * 60000;
+  return hist.filter(function(d){ return d.ts >= cutoff; });
+}
+
 function drawMainChart(){
   var canvas=g('main-chart'); if(!canvas) return;
   var dpr=window.devicePixelRatio||1;
@@ -1118,7 +1151,9 @@ function drawMainChart(){
   var ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
   var pad={top:12,right:14,bottom:24,left:38};
   var fw=W-pad.left-pad.right, fh=H-pad.top-pad.bottom;
-  var allV=fHist.concat(kHist).map(function(d){return d.temp;});
+  var fFiltered = getFilteredHist(fHist);
+  var kFiltered = getFilteredHist(kHist);
+  var allV=fFiltered.concat(kFiltered).map(function(d){return d.temp;});
   allV.push(st.ferm.sp,st.keezer.sp);
   if(!allV.length) return;
   var mnV=Math.floor(Math.min.apply(null,allV)-1), mxV=Math.ceil(Math.max.apply(null,allV)+1), range=mxV-mnV||1;
@@ -1129,7 +1164,7 @@ function drawMainChart(){
     ctx.strokeStyle='#172130'; ctx.lineWidth=1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle='#3d5470'; ctx.font='8px monospace'; ctx.textAlign='right'; ctx.fillText(t,pad.left-4,y+3);
   }
-  [[fHist,'#00d4ff',st.ferm.sp],[kHist,'#00f0a0',st.keezer.sp]].forEach(function(item){
+  [[fFiltered,'#00d4ff',st.ferm.sp],[kFiltered,'#00f0a0',st.keezer.sp]].forEach(function(item){
     var data=item[0], color=item[1], sp=item[2];
     var spy=toY(sp);
     ctx.beginPath(); ctx.moveTo(pad.left,spy); ctx.lineTo(W-pad.right,spy);
@@ -1144,7 +1179,8 @@ function drawMainChart(){
     data.forEach(function(d,i){var x=toX(i,data.length),y2=toY(d.temp);i===0?ctx.moveTo(x,y2):ctx.lineTo(x,y2);});
     ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
   });
-  g('chart-lbl').textContent='TEMPERATURA ('+Math.max(fHist.length,kHist.length)+' mjerenja)';
+  var filterLbl = chartFilter===0?'SVE':(chartFilter<60?chartFilter+'min':(chartFilter/60)+'h');
+  g('chart-lbl').textContent='TEMPERATURA — zadnjih '+filterLbl+' ('+Math.max(fFiltered.length,kFiltered.length)+' mj.)';
   function calcStats(hist,prefix,sp){
     var temps=hist.map(function(d){return d.temp;});
     g(prefix+'-avg').textContent=temps.length?(temps.reduce(function(a,b){return a+b;},0)/temps.length).toFixed(1):'-';
@@ -1152,7 +1188,7 @@ function drawMainChart(){
     g(prefix+'-max').textContent=temps.length?Math.max.apply(null,temps).toFixed(1):'-';
     g(prefix+'-sp').textContent=sp.toFixed(1);
   }
-  calcStats(fHist,'sf',st.ferm.sp); calcStats(kHist,'sk',st.keezer.sp);
+  calcStats(fFiltered,'sf',st.ferm.sp); calcStats(kFiltered,'sk',st.keezer.sp);
 }
 
 // ── Analytics ────────────────────────────────────────────────────
