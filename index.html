@@ -844,10 +844,10 @@ function runLogic(ts){
     var fDiff = fTemp - f.sp;
     var wantR1 = r1;
     if(f.heat){
-      if(fDiff < -f.hy) wantR1=true;   // uključi kad temp < SP - histereza
+      if(fDiff <= -f.hy) wantR1=true;   // uključi kad temp <= SP - histereza
       if(fDiff >= 0)    wantR1=false;  // isključi kad temp >= SP
     } else {
-      if(fDiff > f.hy)  wantR1=true;   // uključi kad temp > SP + histereza
+      if(fDiff >= f.hy)  wantR1=true;   // uključi kad temp >= SP + histereza
       if(fDiff <= 0)    wantR1=false;  // isključi kad temp <= SP
     }
     // Primijeni samo ako nije u zaštitnom periodu
@@ -864,8 +864,8 @@ function runLogic(ts){
   if(!keezerSafeMode && !inDelay && k.en && kTemp!==null){
     var kDiff = kTemp-k.sp;
     var wantR2 = r2;
-    if(kDiff>k.hy)  wantR2=true;   // uključi kad temp > SP + histereza
-    if(kDiff<=0)    wantR2=false;  // isključi kad temp <= SP (kao STC)
+    if(kDiff>=k.hy)  wantR2=true;   // uključi kad temp >= SP + histereza
+    if(kDiff<=0)     wantR2=false;  // isključi kad temp <= SP (kao STC)
     // Primijeni isključivanje samo ako nije u min ON periodu
     if(wantR2 && !r2) r2=true;               // uključivanje — ok odmah (delay već provjeren)
     else if(!wantR2 && r2 && !inMinOn) r2=false;  // isključivanje — čekaj min ON
