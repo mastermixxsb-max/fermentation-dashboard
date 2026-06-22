@@ -1063,6 +1063,7 @@ function saveSettings(){
     keezer_testMode:st.keezer.testMode,keezer_testTemp:st.keezer.testTemp,
     compDelay:st.settings.compDelay,safeLimit:st.settings.safeLimit,riseRate:st.settings.riseRate,
     compWatt:compWatt,
+    obsMode:obsMode,
     lastModified: Date.now(),
     modifiedBy: navigator.userAgent.includes('Mobile')?'mobile':'desktop'
   });
@@ -1087,7 +1088,12 @@ async function loadSettings(){
   if(s.safeLimit!==undefined) st.settings.safeLimit=s.safeLimit;
   if(s.riseRate!==undefined) st.settings.riseRate=s.riseRate;
   if(s.compWatt!==undefined){ compWatt=s.compWatt; if(g("comp-w-lbl")) g("comp-w-lbl").textContent=compWatt+"W"; }
-  if(s.obsMode!==undefined && s.obsMode && !obsMode){ obsMode=true; obsStartTs=Date.now(); updateObsUI(); }
+  if(s.obsMode!==undefined){
+    var wasObs = obsMode;
+    obsMode = s.obsMode;
+    if(obsMode && !wasObs) obsStartTs=Date.now();
+    updateObsUI();
+  }
   updateUI(); updateSettings();
 }
 
@@ -1123,14 +1129,14 @@ async function startBatch(){
   if(!name) return;
   batch={
     name:name, style:style, startTs:Date.now(), active:true,
-    brewDate: g('b-brew-date').value || '',
-    volume:   parseFloat(g('b-volume').value) || 0,
-    og:       parseFloat(g('b-og').value) || 0,
-    fg:       parseFloat(g('b-fg').value) || 0,
-    yeast:    g('b-yeast').value.trim(),
-    hops:     g('b-hops').value.trim(),
-    malt:     g('b-malt').value.trim(),
-    notes:    g('b-notes').value.trim()
+    brewDate: g('b-brew-date') ? g('b-brew-date').value || '' : '',
+    volume:   g('b-volume') ? parseFloat(g('b-volume').value) || 0 : 0,
+    og:       g('b-og') ? parseFloat(g('b-og').value) || 0 : 0,
+    fg:       g('b-fg') ? parseFloat(g('b-fg').value) || 0 : 0,
+    yeast:    g('b-yeast') ? g('b-yeast').value.trim() : '',
+    hops:     g('b-hops') ? g('b-hops').value.trim() : '',
+    malt:     g('b-malt') ? g('b-malt').value.trim() : '',
+    notes:    g('b-notes') ? g('b-notes').value.trim() : ''
   };
   await fbSet('/batch',batch);
   profileEnabled=useProf;
