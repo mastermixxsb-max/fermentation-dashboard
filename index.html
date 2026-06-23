@@ -1403,14 +1403,23 @@ function drawMainChart(){
     });
     ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
 
-    // Zadnja točka — trenutna temp
+    // Točke na svakom mjerenju
+    data.forEach(function(d,i){
+      var x=toX(d.ts), y2=toY(d.temp);
+      var isLast = i===data.length-1;
+      ctx.beginPath();
+      ctx.arc(x, y2, isLast?5:2.5, 0, Math.PI*2);
+      ctx.fillStyle = isLast ? color : color+'88';
+      ctx.fill();
+      if(isLast){
+        ctx.strokeStyle='#080d12'; ctx.lineWidth=1.5; ctx.stroke();
+      }
+    });
+    // Trenutna temp oznaka
     var last=data[data.length-1];
-    ctx.beginPath(); ctx.arc(toX(last.ts), toY(last.temp), 4, 0, Math.PI*2);
-    ctx.fillStyle=color; ctx.fill();
-    // Trenutna temp oznaka unutar grafa
-    var lx = toX(last.ts)-8, ly = toY(last.temp)-8;
-    if(lx > W-pad.right-60) lx = toX(last.ts)-55;
-    ctx.fillStyle=color; ctx.font='bold 11px monospace'; ctx.textAlign='right';
+    var lx=toX(last.ts), ly=toY(last.temp)-14;
+    if(ly < pad.top+10) ly=toY(last.temp)+20;
+    ctx.fillStyle=color; ctx.font='bold 11px monospace'; ctx.textAlign='center';
     ctx.fillText(lbl+': '+last.temp.toFixed(1)+'°', lx, ly);
   });
 
