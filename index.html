@@ -62,6 +62,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .temp-row{display:flex;align-items:baseline;gap:10px}
 .temp{font-family:var(--head);font-size:52px;font-weight:700;line-height:1;letter-spacing:-2px;transition:color .3s}
 @media(max-width:400px){.temp{font-size:42px}}
+@media(max-width:640px){
+  .cbtn{width:32px;height:32px;font-size:18px}
+  .cval{font-size:14px;min-width:44px}
+  .clbl{font-size:10px}
+  .ctrl-grid{gap:8px}
+  .tbtn{padding:5px 14px;font-size:11px}
+  .card-name{font-size:15px}
+  .tsub{font-size:12px}
+  .rlbl,.rn{font-size:11px}
+  .tab{font-size:11px;padding:8px 16px}
+  .kpi-l{font-size:9px}
+  .kpi-v{font-size:24px}
+  .stat-k{font-size:9px}
+  .stat-v{font-size:16px}
+  .set-lbl{font-size:12px}
+  .set-title{font-size:10px}
+}
 .tsub{font-size:11px;color:var(--muted)}
 .spark-wrap{width:100%;height:48px;position:relative}
 .spark-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
@@ -560,19 +577,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
         <button onclick="exportObsProfile()" style="width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid var(--warn);background:rgba(245,158,11,.1);color:var(--warn);cursor:pointer;font-family:var(--mono);font-size:9px">Export profila</button>
       </div>
     </div>
-        <!-- Telegram -->
-    <div class="set-card">
-      <div class="set-title">TELEGRAM</div>
+    <!-- Remote restart -->
+    <div class="set-card" style="border-color:rgba(239,68,68,.3)">
+      <div class="set-title" style="color:var(--danger)">REMOTE RESTART ESP32</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
-        Bot: <span style="color:var(--text)">ferment_ctrl_mastermixx_bot</span><br>
+        Restarta ESP32 bez fizičkog pristupa.<br>
+        Podaci na flash memoriji ostaju sačuvani.
+      </div>
+      <button onclick="remoteRestartESP()" id="restart-btn" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--danger);background:rgba(239,68,68,.15);color:var(--danger);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:1px">⟳ RESTART ESP32</button>
+      <div id="restart-status" style="font-size:9px;color:var(--muted);margin-top:6px;text-align:center"></div>
+    </div>
+    <!-- Pushover -->
+    <div class="set-card">
+      <div class="set-title">PUSHOVER NOTIFIKACIJE</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.8">
+        Token i User Key u Firebase <code style="color:var(--ferm)">/config</code><br>
         Cooldown: <span style="color:var(--warn)">30 min između alarma</span><br>
-        Status: <span id="tg-status" style="color:var(--ok)">Aktivan</span>
+        Status: <span id="po-status" style="color:var(--muted)">Nije konfiguriran</span>
       </div>
-      <button onclick="sendTelegramTest()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--ok);background:rgba(34,197,94,.15);color:var(--ok);cursor:pointer;font-family:var(--mono);font-size:10px">Test poruka</button>
-      <div style="margin-top:8px">
-        <div class="set-lbl" style="color:var(--muted)">OTA lozinka: <span style="color:var(--text)">ferm2024</span></div>
-        <div style="font-size:9px;color:var(--muted);margin-top:4px">Arduino IDE: Tools → Port → Network → fermentation-ctrl</div>
-      </div>
+      <button onclick="sendPushoverTest()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--ok);background:rgba(34,197,94,.15);color:var(--ok);cursor:pointer;font-family:var(--mono);font-size:10px">Test notifikacija</button>
+      <div style="margin-top:8px;font-size:9px;color:var(--muted)">OTA: Arduino IDE → Tools → Port → Network → fermentation-ctrl</div>
     </div>
   </div>
 </div>
@@ -664,19 +688,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 <script>
 // ── Config ───────────────────────────────────────────────────────
 var FB = 'https://fermentationcontroller-default-rtdb.europe-west1.firebasedatabase.app';
-var TG_TOKEN = '';
-var TG_CHAT = '';
-var MAX_HIST = 300;
-var TG_COOLDOWN = 30 * 60 * 1000; // 30 minuta između alarma
-var tgLastSent = {};  // {key: timestamp}
-
-async function loadConfig(){
-  var config = await fbGet('/config');
-  if(config){
-    TG_TOKEN = config.tg_token || '';
-    TG_CHAT  = config.tg_chat  || '';
-  }
-}
 
 // ── State ────────────────────────────────────────────────────────
 var st = {
@@ -693,6 +704,11 @@ var USER_BLOCK = 10000;
 var compOffTs = 0;
 var keezerSafeMode = false;
 var compWatt = 75; // Gorenje default
+var MAX_HIST = 300;
+var PO_TOKEN = '';
+var PO_USER  = '';
+var PO_COOLDOWN = 30 * 60 * 1000;
+var poLastSent = {};
 
 // Batch / Serija - iz Firebase (ne localStorage)
 var batch = null;
@@ -760,9 +776,15 @@ async function poll(){
     var hbAge = Math.round((Date.now()/1000) - sensors.heartbeat);
     var hbEl = g('hb-info');
     if(hbEl){
-      if(hbAge < 10)       { hbEl.textContent='ESP ✓'; hbEl.style.color='var(--ok)'; }
-      else if(hbAge < 30)  { hbEl.textContent='ESP '+hbAge+'s'; hbEl.style.color='var(--warn)'; }
-      else                 { hbEl.textContent='ESP '+hbAge+'s'; hbEl.style.color='var(--danger)'; }
+      if(hbAge < 15){
+        hbEl.textContent='ESP ONLINE'; hbEl.style.color='var(--ok)';
+      } else if(hbAge < 120){
+        var m=Math.floor(hbAge/60), s=hbAge%60;
+        hbEl.textContent='ESP '+(m>0?m+'min ':'')+s+'s'; hbEl.style.color='var(--warn)';
+      } else {
+        var mins=Math.round(hbAge/60);
+        hbEl.textContent='ESP OFFLINE '+(mins>60?Math.round(mins/60)+'h':mins+'min'); hbEl.style.color='var(--danger)';
+      }
     }
   }
   var ts = Date.now();
@@ -859,7 +881,6 @@ function runLogic(ts){
   if(kTemp!==null && kTemp>k.sp+s.safeLimit && !keezerSafeMode){
     keezerSafeMode=true; k.safe=true;
     addLog('KEEZER SAFE MODE! Releji isključeni','Keezer','R2','#ef4444');
-    sendTelegram('keezer_safe','⚠️ KEEZER SAFE MODE!\nTemp: '+kTemp.toFixed(1)+'°C');
   }
   if(!keezerSafeMode && !inDelay && k.en && kTemp!==null){
     var kDiff = kTemp-k.sp;
@@ -896,13 +917,16 @@ function runLogic(ts){
     addLog('Ferm R1 '+(r1?'ON':'OFF'),'Ferm','R1',r1?'#ff6b35':'#3d5470');
   }
 
-  // Telegram alarmi s cooldownom
-  if(f.alarm && f.en)  sendTelegram('ferm_alarm','🌡 FERMENTACIJA ALARM!\nTemp: '+fTemp.toFixed(1)+'°C (SP: '+f.sp.toFixed(1)+'°C)');
-  else tgLastSent['ferm_alarm'] = 0;
-  if(k.alarm && k.en)  sendTelegram('keezer_alarm','❄️ KEEZER ALARM!\nTemp: '+kTemp.toFixed(1)+'°C (SP: '+k.sp.toFixed(1)+'°C)');
-  else tgLastSent['keezer_alarm'] = 0;
+
 
   f.relay=r1; k.relay=r2; k.safe=keezerSafeMode;
+
+  // Pushover alarmi s cooldownom
+  if(f.alarm && f.en)  sendPushover('ferm_alarm','🌡 Ferm ALARM','Temp: '+fTemp.toFixed(1)+'°C (SP: '+f.sp.toFixed(1)+'°C)',1);
+  else poLastSent['ferm_alarm']=0;
+  if(k.alarm && k.en)  sendPushover('keezer_alarm','❄️ Keezer ALARM','Temp: '+kTemp.toFixed(1)+'°C (SP: '+k.sp.toFixed(1)+'°C)',1);
+  else poLastSent['keezer_alarm']=0;
+  if(keezerSafeMode)   sendPushover('keezer_safe','⚠️ SAFE MODE','Keezer temp previsoka! Relaji isključeni.',2);
 
   // Fermentacijski profil
   if(profileEnabled && batch && batch.startTs){
@@ -926,16 +950,6 @@ function resetSafe(){
   addLog('Safe mode resetiran','Keezer','R2','#22c55e');
 }
 
-// ── Telegram s cooldownom ─────────────────────────────────────────
-async function sendTelegram(key, msg){
-  var now = Date.now();
-  if(tgLastSent[key] && (now-tgLastSent[key])<TG_COOLDOWN) return; // cooldown
-  tgLastSent[key] = now;
-  if(!TG_TOKEN||!TG_CHAT) return;
-  try{ await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage?chat_id='+TG_CHAT+'&text='+encodeURIComponent(msg)); }
-  catch(e){}
-}
-function sendTelegramTest(){ sendTelegram('test_'+Date.now(),'✅ Test poruka od FermentController PWA!'); }
 
 // ── Fermentacijska sesija (praćenje) ─────────────────────────────
 function startFermSession(){
@@ -948,7 +962,7 @@ function startFermSession(){
     count: 0
   };
   addLog('Fermentacija STARTED','Ferm','SESSION','#00d4ff');
-  sendTelegram('ferm_start_'+Date.now(),'🍺 Fermentacija počela!\n'+(batch?'Serija: '+batch.name:''));
+  sendPushover('ferm_start_'+Date.now(),'🍺 Fermentacija','Počela! '+(batch?'Serija: '+batch.name:''));
   updateFermSession();
 }
 
@@ -983,7 +997,7 @@ function stopFermSession(){
   fermHistory.unshift(rec);
   if(fermHistory.length>20) fermHistory.pop();
   addLog('Fermentacija STOP — trajanje: '+durH+'h, avg: '+avgT+'°C','Ferm','SESSION','#3d5470');
-  sendTelegram('ferm_stop_'+Date.now(),'🏁 Fermentacija završena!\nTrajanje: '+durH+'h | Avg: '+avgT+'°C | Min: '+minT+'°C | Max: '+maxT+'°C');
+  sendPushover('ferm_stop_'+Date.now(),'🏁 Fermentacija','Završena! Trajanje: '+durH+'h | Avg: '+avgT+'°C');
   fermSession = null;
   updateFermSession();
   renderFermHistory();
@@ -1142,12 +1156,11 @@ async function startBatch(){
   profileEnabled=useProf;
   if(useProf&&profileSteps.length>0) st.ferm.sp=profileSteps[0].sp;
   addLog('Serija "'+name+'" startala','Ferm','SERIJA','#00d4ff');
-  sendTelegram('batch_start_'+Date.now(),'🍺 Serija "'+name+'" startala!');
   closeModal('batch-modal');
   updateBatch(Date.now());
 }
 async function stopBatch(){
-  if(batch){ addLog('Serija "'+batch.name+'" završena','Ferm','SERIJA','#3d5470'); sendTelegram('batch_stop_'+Date.now(),'🏁 Serija "'+batch.name+'" završena!'); }
+  if(batch){ addLog('Serija "'+batch.name+'" završena','Ferm','SERIJA','#3d5470'); }
   batch=null; profileEnabled=false;
   await fbSet('/batch',null);
   updateBatch(Date.now());
@@ -1575,7 +1588,6 @@ function toggleObsMode(){
     obsRiseRates = [];
     obsPullRates = [];
     addLog('Observation mod UKLJUČEN — relaji blokirani','Keezer','OBS','#f59e0b');
-    sendTelegram('obs_start','📊 Observation mod ukljucen - ucim keezer profil');
     fbSet('/settings/obsMode', true);
   } else {
     addLog('Observation mod ISKLJUČEN','Keezer','OBS','#3d5470');
@@ -1724,7 +1736,6 @@ function saveObsProfile(){
   };
   fbSet('/keezer_profile', profile);
   addLog('Keezer profil spremljen: '+obsCycles.length+' ciklusa, rise='+avgRise.toFixed(3)+'°/min','Keezer','OBS','#f59e0b');
-  sendTelegram('obs_done','📊 Keezer profil naučen! '+obsCycles.length+' ciklusa | Rise: '+avgRise.toFixed(3)+'°/min | Pull-down: '+avgPull.toFixed(3)+'°/min');
 }
 
 function exportObsProfile(){
@@ -1753,8 +1764,68 @@ async function forceRefresh(){
   addLog('Force refresh — postavke učitane iz Firebase','SYS','SYNC','#00d4ff');
 }
 
+// ── Remote Restart ───────────────────────────────────────────
+async function remoteRestartESP(){
+  var btn = g('restart-btn');
+  var status = g('restart-status');
+  if(!confirm('Restartati ESP32?')) return;
+  if(btn) btn.disabled = true;
+  if(status) { status.textContent = 'Slanje komande...'; status.style.color='var(--warn)'; }
+  await fbSet('/command/restart', true);
+  if(status) { status.textContent = 'Komanda poslana — ESP restarta za ~5s'; status.style.color='var(--ok)'; }
+  addLog('Remote restart poslan','SYS','CMD','#ef4444');
+  setTimeout(function(){
+    if(btn) btn.disabled = false;
+    if(status) status.textContent = '';
+  }, 15000);
+}
+
+// ── Pushover test ────────────────────────────────────────────
+function sendPushoverTest(){
+  poLastSent['test'] = 0; // Ignoriraj cooldown za test
+  sendPushover('test_'+Date.now(),'✅ FerCtrl Test','Test notifikacija radi!',0);
+}
+
+// ── Pushover status update ────────────────────────────────────
+function updatePushoverStatus(){
+  var el = g('po-status');
+  if(!el) return;
+  if(PO_TOKEN && PO_USER){ el.textContent='Aktivan'; el.style.color='var(--ok)'; }
+  else { el.textContent='Nije konfiguriran'; el.style.color='var(--muted)'; }
+}
+
 // ── Init ─────────────────────────────────────────────────────────
+async function loadConfig(){
+  var config = await fbGet('/config');
+  if(config){
+    PO_TOKEN = config.po_token || '';
+    PO_USER  = config.po_user  || '';
+  }
+}
+
+async function sendPushover(key, title, msg, priority){
+  var now = Date.now();
+  if(poLastSent[key] && (now-poLastSent[key])<PO_COOLDOWN) return;
+  poLastSent[key] = now;
+  if(!PO_TOKEN||!PO_USER) return;
+  priority = priority || 0;
+  try{
+    await fetch('https://api.pushover.net/1/messages.json',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'token='+encodeURIComponent(PO_TOKEN)+
+           '&user='+encodeURIComponent(PO_USER)+
+           '&title='+encodeURIComponent(title)+
+           '&message='+encodeURIComponent(msg)+
+           '&priority='+priority
+    });
+    addLog('Pushover: '+title,'SYS','PUSH','#f59e0b');
+  }catch(e){ console.error('Pushover error',e); }
+}
+
 async function init(){
+  await loadConfig();
+  updatePushoverStatus();
   // Loading overlay
   document.body.insertAdjacentHTML('beforeend',
     '<div id="loading-overlay" style="position:fixed;inset:0;background:#080d12;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px">'+
@@ -1770,7 +1841,6 @@ async function init(){
   };
 
   setMsg('Firebase config...', 10);
-  await loadConfig();
 
   setMsg('Učitavam postavke...', 35);
   await loadSettings();
