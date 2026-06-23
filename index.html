@@ -1343,13 +1343,14 @@ function drawMainChart(){
   var toX = function(ts){ return pad.left + ((ts - tsMin) / tsRange) * fw; };
   var toY = function(v){ return pad.top + fh - ((v - mnV) / range) * fh; };
 
-  // Y os grid linije i oznake
-  for(var t=mnV; t<=mxV; t++){
+  // Y os grid linije i oznake — samo svaki 5°
+  var yStep = range > 15 ? 5 : range > 8 ? 2 : 1;
+  for(var t=Math.ceil(mnV/yStep)*yStep; t<=mxV; t+=yStep){
     var y=toY(t);
     ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y);
     ctx.strokeStyle='#172130'; ctx.lineWidth=1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#3d5470'; ctx.font='9px monospace'; ctx.textAlign='right';
-    ctx.fillText(t+'°', pad.left-5, y+3);
+    ctx.fillStyle='#5d7a9a'; ctx.font='bold 10px monospace'; ctx.textAlign='right';
+    ctx.fillText(t+'°', pad.left-4, y+4);
   }
 
   // X os — vremenske oznake
@@ -1357,15 +1358,15 @@ function drawMainChart(){
     var d = new Date(ts);
     return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   };
-  var numTicks = Math.min(6, allData.length);
+  var numTicks = Math.min(3, allData.length);
   if(numTicks > 1){
     for(var i=0; i<numTicks; i++){
       var idx = Math.round(i * (allData.length-1) / (numTicks-1));
       var tx = toX(allData[idx].ts);
-      ctx.beginPath(); ctx.moveTo(tx, pad.top+fh); ctx.lineTo(tx, pad.top+fh+4);
-      ctx.strokeStyle='#3d5470'; ctx.lineWidth=1; ctx.stroke();
-      ctx.fillStyle='#3d5470'; ctx.font='8px monospace'; ctx.textAlign='center';
-      ctx.fillText(fmtTime(allData[idx].ts), tx, H-pad.bottom+16);
+      ctx.beginPath(); ctx.moveTo(tx, pad.top+fh); ctx.lineTo(tx, pad.top+fh+5);
+      ctx.strokeStyle='#5d7a9a'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle='#7a9ab8'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+      ctx.fillText(fmtTime(allData[idx].ts), tx, H-6);
     }
   }
 
@@ -1382,8 +1383,9 @@ function drawMainChart(){
     var spy=toY(sp);
     ctx.beginPath(); ctx.moveTo(pad.left,spy); ctx.lineTo(W-pad.right,spy);
     ctx.strokeStyle=color+'55'; ctx.lineWidth=1; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle=color+'88'; ctx.font='8px monospace'; ctx.textAlign='left';
-    ctx.fillText('SP '+sp.toFixed(1), W-pad.right+2, spy+3);
+    // SP oznaka unutar grafa
+    ctx.fillStyle=color+'99'; ctx.font='bold 9px monospace'; ctx.textAlign='right';
+    ctx.fillText('SP '+sp.toFixed(1)+'°', W-pad.right-4, spy-4);
 
     // Fill ispod linije
     ctx.beginPath(); ctx.moveTo(toX(data[0].ts), pad.top+fh);
@@ -1405,8 +1407,11 @@ function drawMainChart(){
     var last=data[data.length-1];
     ctx.beginPath(); ctx.arc(toX(last.ts), toY(last.temp), 4, 0, Math.PI*2);
     ctx.fillStyle=color; ctx.fill();
-    ctx.fillStyle=color; ctx.font='bold 9px monospace'; ctx.textAlign='left';
-    ctx.fillText(lbl+':'+last.temp.toFixed(1)+'°', toX(last.ts)+6, toY(last.temp)+3);
+    // Trenutna temp oznaka unutar grafa
+    var lx = toX(last.ts)-8, ly = toY(last.temp)-8;
+    if(lx > W-pad.right-60) lx = toX(last.ts)-55;
+    ctx.fillStyle=color; ctx.font='bold 11px monospace'; ctx.textAlign='right';
+    ctx.fillText(lbl+': '+last.temp.toFixed(1)+'°', lx, ly);
   });
 
   var filterLbl = chartFilter===0?'SVE':(chartFilter<60?chartFilter+'min':(chartFilter/60)+'h');
