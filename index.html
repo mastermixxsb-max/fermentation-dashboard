@@ -1696,8 +1696,9 @@ async function loadRelayLogFromFB(){
       var entries = Object.values(data).sort(function(a,b){return a.ts-b.ts;});
       entries.forEach(function(e){
         var color = e.relay===1 ? '#FF6B35' : '#00f0a0';
-        var msg = 'R'+e.relay+' '+(e.state?'ON':'OFF');
-        relayLog.push({ts: Date.now(), msg: msg, sec: e.relay===1?'Fermentacija':'Keezer', relay:'R'+e.relay, color: color});
+        var relayName = e.relay===1 ? 'Grijanje' : 'Keezer';
+        var msg = relayName+' '+(e.state?'ON':'OFF');
+        relayLog.push({ts: Date.now(), msg: msg, sec: relayName, relay:'R'+e.relay, color: color});
       });
       if(relayLog.length>500) relayLog=relayLog.slice(-500);
       g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
@@ -1715,11 +1716,12 @@ async function loadCyclesFromFB(){
         .sort(function(a,b){ return a.ts-b.ts; });
       var onTs = null;
       entries.forEach(function(e){
-        if(e.state && !onTs){ onTs = e.ts; }
-        else if(!e.state && onTs){
+        if(e.state===true && onTs===null){ onTs = e.ts; }
+        else if(e.state===false && onTs!==null){
           var sec = e.ts - onTs;
           if(sec > 0 && sec < 7200){
-            cycles.push({onTs: Date.now()-sec*1000, offTs: Date.now(), sec: sec});
+            // onTs/offTs kao ms za prikaz (relativno, od boot-a)
+            cycles.push({onTs: onTs*1000, offTs: e.ts*1000, sec: sec});
           }
           onTs = null;
         }
@@ -1744,8 +1746,8 @@ function updateAna(){
   var avgDur=total?Math.round(filtered.reduce(function(a,b){return a+b.sec;},0)/total):0;
   var maxDur=total?Math.max.apply(null,filtered.map(function(c){return c.sec;})):0;
   var totalOn=filtered.reduce(function(a,b){return a+b.sec;},0);
-  var elapsed=filtered.length>1?(filtered[filtered.length-1].offTs-filtered[0].onTs)/1000:0;
-  var duty=elapsed>0?Math.round(totalOn/elapsed*100):0;
+  var periodSec={dan:86400,tjedan:604800,mjesec:2592000};
+  var duty=Math.min(100,Math.round(totalOn/periodSec[anaPeriod]*100));
 
   g('ana-total').textContent=total||'-';
   g('ana-avg').textContent=avgDur?fmtDur(avgDur):'-';
