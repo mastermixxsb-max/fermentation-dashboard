@@ -1697,7 +1697,7 @@ async function loadRelayLogFromFB(){
       entries.forEach(function(e){
         var color = e.relay===1 ? '#FF6B35' : '#00f0a0';
         var msg = 'R'+e.relay+' '+(e.state?'ON':'OFF');
-        relayLog.push({ts: e.ts*1000, msg: msg, sec: e.relay===1?'Fermentacija':'Keezer', relay:'R'+e.relay, color: color});
+        relayLog.push({ts: Date.now(), msg: msg, sec: e.relay===1?'Fermentacija':'Keezer', relay:'R'+e.relay, color: color});
       });
       if(relayLog.length>500) relayLog=relayLog.slice(-500);
       g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
@@ -1715,11 +1715,11 @@ async function loadCyclesFromFB(){
         .sort(function(a,b){ return a.ts-b.ts; });
       var onTs = null;
       entries.forEach(function(e){
-        if(e.state && !onTs){ onTs = e.ts*1000; }
+        if(e.state && !onTs){ onTs = e.ts; }
         else if(!e.state && onTs){
-          var sec = Math.round((e.ts*1000 - onTs)/1000);
+          var sec = e.ts - onTs;
           if(sec > 0 && sec < 7200){
-            cycles.push({onTs: onTs, offTs: e.ts*1000, sec: sec});
+            cycles.push({onTs: Date.now()-sec*1000, offTs: Date.now(), sec: sec});
           }
           onTs = null;
         }
