@@ -1281,6 +1281,14 @@ function addProfileStep(){
 
 // ── Update UI ────────────────────────────────────────────────────
 function g(id){ return document.getElementById(id); }
+function fmtDur(sec){
+  if(sec < 60) return sec+'s';
+  var h = Math.floor(sec/3600);
+  var m = Math.floor((sec%3600)/60);
+  var s = sec%60;
+  if(h > 0) return h+'h '+m+'min';
+  return m+'min '+s+'s';
+}
 function updateUI(){
   var f=st.ferm, k=st.keezer;
   var fT=f.temp!==null?f.temp.toFixed(1):'--.-';
@@ -1698,8 +1706,8 @@ function updateAna(){
   var duty=elapsed>0?Math.round(totalOn/elapsed*100):0;
 
   g('ana-total').textContent=total||'-';
-  g('ana-avg').textContent=avgDur?avgDur+'s':'-';
-  g('ana-max').textContent=maxDur?maxDur+'s':'-';
+  g('ana-avg').textContent=avgDur?fmtDur(avgDur):'-';
+  g('ana-max').textContent=maxDur?fmtDur(maxDur):'-';
   g('ana-duty').textContent=duty?duty+'%':'-';
 
   // kW računanje
@@ -1854,7 +1862,7 @@ function updateObsUI(){
   if(obsCycles.length > 0){
     var avgDur = Math.round(obsCycles.reduce(function(a,b){return a+b.durSec;},0)/obsCycles.length);
     g('obs-cycles').textContent = obsCycles.length;
-    g('obs-avg-dur').textContent = avgDur>60?Math.floor(avgDur/60)+'m'+avgDur%60+'s':avgDur+'s';
+    g('obs-avg-dur').textContent = fmtDur(Math.round(avgDur));
   }
   if(obsRiseRates.length > 0){
     var avgRise = (obsRiseRates.reduce(function(a,b){return a+b;},0)/obsRiseRates.length).toFixed(3);
