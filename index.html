@@ -1690,7 +1690,7 @@ function drawMainChart(){
 // ── Firebase Log + Cycles load ───────────────────────────────────
 async function loadRelayLogFromFB(){
   try {
-    var resp = await fetch(FB + '/relay_log.json?limitToLast=500');
+    var resp = await fetch(FB + '/relay_log.json?orderBy="$key"&limitToLast=500');
     var data = await resp.json();
     if(data && typeof data === 'object'){
       var entries = Object.values(data).sort(function(a,b){return a.ts-b.ts;});
