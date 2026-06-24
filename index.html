@@ -1506,6 +1506,47 @@ function setChartFilter(mins, btn){
   chartFilter = mins;
   document.querySelectorAll('#pane-chart .tbtn').forEach(function(b){ b.className='tbtn'; b.style.color=''; });
   btn.className='tbtn on'; btn.style.color='var(--ferm)';
+  if(mins > 30 || mins === 0){
+    loadHistoryAndDraw(mins);
+  } else {
+    drawMainChart();
+  }
+}
+
+async function loadHistoryAndDraw(mins){
+  var lbl = g('chart-lbl');
+  if(lbl) lbl.textContent = 'UČITAVAM HISTORIJU...';
+
+  // Firebase history — čitaj zadnjih N minuta
+  // Firebase orderBy timestamp, limitToLast za efikasnost
+  var url = FB + '/history.json?orderBy="ts"';
+  if(mins > 0){
+    var cutoffTs = Math.floor(Date.now()/1000) - mins*60;
+    url += '&startAt=' + cutoffTs;
+  } else {
+    // "Sve" — zadnjih 7 dana max
+    var cutoffTs = Math.floor(Date.now()/1000) - 7*24*3600;
+    url += '&startAt=' + cutoffTs;
+  }
+
+  try {
+    var resp = await fetch(url);
+    var data = await resp.json();
+    if(data && typeof data === 'object'){
+      // Reset historije i napuni s Firebase podacima
+      fHist = []; kHist = [];
+      var entries = Object.values(data).sort(function(a,b){ return a.ts - b.ts; });
+      entries.forEach(function(e){
+        var tsMs = e.ts * 1000;
+        if(e.f !== undefined && e.f > -90) fHist.push({ts:tsMs, temp:e.f, sp:st.ferm.sp});
+        if(e.k !== undefined && e.k > -90) kHist.push({ts:tsMs, temp:e.k, sp:st.keezer.sp});
+      });
+      if(lbl) lbl.textContent = 'TEMPERATURA GRAF (' + (mins===0?'SVE':mins+'min') + ', ' + entries.length + ' točaka)';
+    }
+  } catch(e) {
+    console.error('History fetch error', e);
+    if(lbl) lbl.textContent = 'GREŠKA UČITAVANJA HISTORIJE';
+  }
   drawMainChart();
 }
 
