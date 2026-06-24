@@ -1687,6 +1687,48 @@ function drawMainChart(){
   calcStats(fFiltered,'sf',st.ferm.sp); calcStats(kFiltered,'sk',st.keezer.sp);
 }
 
+// ── Firebase Log + Cycles load ───────────────────────────────────
+async function loadRelayLogFromFB(){
+  try {
+    var resp = await fetch(FB + '/relay_log.json?limitToLast=500');
+    var data = await resp.json();
+    if(data && typeof data === 'object'){
+      var entries = Object.values(data).sort(function(a,b){return a.ts-b.ts;});
+      entries.forEach(function(e){
+        var color = e.relay===1 ? '#FF6B35' : '#00f0a0';
+        var msg = 'R'+e.relay+' '+(e.state?'ON':'OFF');
+        relayLog.push({ts: e.ts*1000, msg: msg, sec: e.relay===1?'Fermentacija':'Keezer', relay:'R'+e.relay, color: color});
+      });
+      if(relayLog.length>500) relayLog=relayLog.slice(-500);
+      g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
+    }
+  } catch(e){ console.warn('relay_log FB load error', e); }
+}
+
+async function loadCyclesFromFB(){
+  try {
+    var resp = await fetch(FB + '/relay_log.json');
+    var data = await resp.json();
+    if(data && typeof data === 'object'){
+      var entries = Object.values(data)
+        .filter(function(e){ return e.relay===2; })
+        .sort(function(a,b){ return a.ts-b.ts; });
+      var onTs = null;
+      entries.forEach(function(e){
+        if(e.state && !onTs){ onTs = e.ts*1000; }
+        else if(!e.state && onTs){
+          var sec = Math.round((e.ts*1000 - onTs)/1000);
+          if(sec > 0 && sec < 7200){
+            cycles.push({onTs: onTs, offTs: e.ts*1000, sec: sec});
+          }
+          onTs = null;
+        }
+      });
+      if(cycles.length>1000) cycles=cycles.slice(-1000);
+    }
+  } catch(e){ console.warn('cycles FB load error', e); }
+}
+
 // ── Analytics ────────────────────────────────────────────────────
 function setAnaPeriod(p,btn){
   anaPeriod=p;
@@ -1750,7 +1792,7 @@ function updateAna(){
   if(!filtered.length){clog.innerHTML='<div style="color:#3d5470">Nema ciklusa</div>';return;}
   var fmt=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});};
   clog.innerHTML=filtered.slice(-10).reverse().map(function(c){
-    var dur=c.sec>=60?Math.floor(c.sec/60)+'m '+c.sec%60+'s':c.sec+'s';
+    var dur=fmtDur(c.sec);
     return '<div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:6px;padding:4px 0;border-bottom:1px solid #172130">'+
       '<span style="color:#3d5470">'+fmt(c.onTs)+'</span>'+
       '<span style="color:#3d5470">'+fmt(c.offTs)+'</span>'+
@@ -2086,7 +2128,11 @@ async function init(){
   setMsg('Učitavam seriju...', 60);
   await loadBatch();
 
-  setMsg('Historija fermentacija...', 80);
+  setMsg('Učitavam log i analitiku...', 85);
+  await loadRelayLogFromFB();
+  await loadCyclesFromFB();
+
+  setMsg('Historija fermentacija...', 90);
   await loadFermHistory();
 
   setMsg('Spajam na Firebase...', 95);
