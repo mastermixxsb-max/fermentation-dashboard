@@ -1714,14 +1714,18 @@ async function loadCyclesFromFB(){
       var entries = Object.values(data)
         .filter(function(e){ return e.relay===2; })
         .sort(function(a,b){ return a.ts-b.ts; });
+      // Zadnji ts = uptime u trenutku zadnjeg relay eventi
+      // Rekonstruiramo pravo vrijeme: Date.now() - (maxTs - e.ts)*1000
+      var maxTs = entries.length ? entries[entries.length-1].ts : 0;
+      var nowMs = Date.now();
       var onTs = null;
       entries.forEach(function(e){
-        if(e.state===true && onTs===null){ onTs = e.ts; }
+        var realMs = nowMs - (maxTs - e.ts)*1000;
+        if(e.state===true && onTs===null){ onTs = {uptime:e.ts, realMs:realMs}; }
         else if(e.state===false && onTs!==null){
-          var sec = e.ts - onTs;
+          var sec = e.ts - onTs.uptime;
           if(sec > 0 && sec < 7200){
-            // onTs/offTs kao ms za prikaz (relativno, od boot-a)
-            cycles.push({onTs: onTs*1000, offTs: e.ts*1000, sec: sec});
+            cycles.push({onTs: onTs.realMs, offTs: realMs, sec: sec});
           }
           onTs = null;
         }
