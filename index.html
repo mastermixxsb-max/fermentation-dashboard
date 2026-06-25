@@ -816,6 +816,7 @@ async function poll(){
   var ts = Date.now();
   var blocked = (ts - lastUserInput) < USER_BLOCK;
 
+  if(sensors.ip) st.ip = sensors.ip;
   if(sensors.ferm_temp !== undefined){
     st.ferm.rawTemp = sensors.ferm_temp;
     st.ferm.temp = st.ferm.testMode ? st.ferm.testTemp : sensors.ferm_temp;
@@ -1424,7 +1425,7 @@ function oledDraw(){
     // Stranica 2: IP + Relay + SP + Mod
     ctx.font = (6*S)+'px "Share Tech Mono", monospace';
     ctx.fillStyle = '#00BFFF';
-    ctx.fillText('192.168.x.x', 0, 14);
+    ctx.fillText((st.ip || '192.168.?.?'), 0, 14);
     ctx.fillStyle = f.relay ? '#FF6B35' : '#5588AA';
     ctx.fillText('R1:'+(f.relay?'ON ':'OFF')+' SP:'+f.sp.toFixed(1), 0, 30);
     ctx.fillStyle = k.relay ? '#00FF88' : '#5588AA';
