@@ -1378,7 +1378,37 @@ function drawSpark(id,data,color){
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
 }
 
-// ── OLED Widget ──────────────────────────────────────────────────
+async function loadTodayStatsFromFB(){
+  try {
+    var resp = await fetch(FB + '/relay_log.json');
+    var data = await resp.json();
+    if(data && typeof data === 'object'){
+      var now = Math.floor(Date.now()/1000);
+      var todayStart = now - (now % 86400); // početak dana UTC
+      var entries = Object.values(data)
+        .filter(function(e){ return e.relay===2; })
+        .sort(function(a,b){ return a.ts-b.ts; });
+      var maxTs = entries.length ? entries[entries.length-1].ts : 0;
+      var nowMs = Date.now();
+      var onTs = null; var totalSec = 0; var cycles = 0;
+      entries.forEach(function(e){
+        var realMs = nowMs - (maxTs - e.ts)*1000;
+        var realSec = Math.floor(realMs/1000);
+        if(e.state===true && onTs===null){ onTs = {ts:e.ts, realMs:realMs}; }
+        else if(e.state===false && onTs!==null){
+          var sec = e.ts - onTs.ts;
+          if(sec > 0 && sec < 7200){
+            totalSec += sec;
+            cycles++;
+          }
+          onTs = null;
+        }
+      });
+      window._todayOnSec = totalSec;
+      window._todayCycles = cycles;
+    }
+  } catch(e){ console.warn('today stats load error', e); }
+}
 function oledDraw(){
   var canvas = g('oled-canvas'); if(!canvas) return;
   var ctx = canvas.getContext('2d');
@@ -2174,6 +2204,7 @@ async function init(){
   setMsg('Učitavam log i analitiku...', 85);
   await loadRelayLogFromFB();
   await loadCyclesFromFB();
+  await loadTodayStatsFromFB();
 
   setMsg('Historija fermentacija...', 90);
   await loadFermHistory();
