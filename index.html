@@ -1443,19 +1443,13 @@ function oledDraw(){
     ctx.fillText('FLASH STATS', 0, 16);
     ctx.font = (6*S)+'px "Share Tech Mono", monospace';
     ctx.fillStyle = '#AACCDD';
-    ctx.fillText('Temp log: --', 0, 34);
-    ctx.fillText('Relay log: --', 0, 50);
-    ctx.fillText('Ferm hist: --', 0, 66);
-    // Debug info iz Firebase /debug ako dostupno
-    if(window._espDebug){
-      var d = window._espDebug;
-      ctx.fillStyle = '#5588AA';
-      ctx.fillText('Heap: '+(d.heap||'--'), 0, 82);
-      ctx.fillText('RSSI: '+(d.rssi||'--'), 130, 82);
-    } else {
-      ctx.fillStyle = '#5588AA';
-      ctx.fillText('Heap: nema podataka', 0, 82);
-    }
+    var d = window._espDebug || {};
+    ctx.fillText('Temp log: '+(d.temp_log !== undefined ? d.temp_log : '--'), 0, 34);
+    ctx.fillText('Relay log: '+(d.relay_log !== undefined ? d.relay_log : '--'), 0, 50);
+    ctx.fillText('Ferm hist: '+(d.ferm_hist !== undefined ? d.ferm_hist : '--'), 0, 66);
+    ctx.fillStyle = '#5588AA';
+    ctx.fillText('Heap: '+(d.heap||'--'), 0, 82);
+    ctx.fillText('RSSI: '+(d.rssi||'--'), 130, 82);
 
   } else {
     // Stranica 4: Keezer stat (iz ESP Firebase /debug)
