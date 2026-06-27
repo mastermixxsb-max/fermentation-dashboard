@@ -106,6 +106,8 @@ uint16_t today_cycles = 0;
 uint32_t today_start_ts = 0;
 
 bool     obs_mode = false;
+char     po_token[48] = "";
+char     po_user[48]  = "";
 bool     ferm_session_active = false;
 uint32_t ferm_session_start = 0;
 float    ferm_sum_temp = 0;
@@ -236,9 +238,10 @@ void settings_load() {
   flash_read(FLASH_ADDR_SETTINGS, (uint8_t*)&cfg, sizeof(cfg));
   if (cfg.magic != 0xFEED1234) {
     Serial.println("[FLASH] No settings, using defaults");
+    // CORE defaults — trajno pravilo, SP=4°C, hy=0.5°C
     cfg.ferm_sp = 18.0; cfg.ferm_hy = 0.5; cfg.ferm_al = 2.0; cfg.ferm_cal = 0.0;
     cfg.ferm_en = true; cfg.ferm_heat = true;
-    cfg.keezer_sp = 5.0; cfg.keezer_hy = 0.3; cfg.keezer_al = 2.0; cfg.keezer_cal = 0.0;
+    cfg.keezer_sp = 4.0; cfg.keezer_hy = 0.5; cfg.keezer_al = 2.0; cfg.keezer_cal = 0.0;  // CORE: SP=4, hy=0.5
     cfg.keezer_en = true; cfg.comp_delay_min = 3.0; cfg.safe_limit = 5.0;
     settings_save();
   } else {
@@ -367,42 +370,7 @@ void fb_send_sensors() {
   fb_put("/sensors", body);
 }
 
-void fb_read_relays() {
-  String resp = fb_get("/relays");
-  if (resp.length() < 5 || resp == "null") return;
-
-  bool new_r1 = resp.indexOf("\"r1\":true") >= 0;
-  bool new_r2 = resp.indexOf("\"r2\":true") >= 0;
-
-  // Obs mode — blokiraj R2
-  if (obs_mode) new_r2 = false;
-
-  if (new_r1 != r1_state) {
-    r1_state = new_r1;
-    digitalWrite(PIN_RELAY1, r1_state ? LOW : HIGH);
-    flash_log_relay(1, r1_state);
-    fb_log_relay(1, r1_state);
-  }
-
-  if (new_r2 != r2_state) {
-    unsigned long delay_ms = (unsigned long)(cfg.comp_delay_min * 60000);
-    if (!new_r2) {
-      if (r2_state && keezer_on_ts > 0) {
-        today_on_sec += (millis()-keezer_on_ts)/1000;
-        today_cycles++;
-        keezer_on_ts = 0;
-        comp_off_ts = millis();
-      }
-    } else {
-      if (comp_off_ts > 0 && (millis()-comp_off_ts) < delay_ms) return;
-      keezer_on_ts = millis();
-    }
-    r2_state = new_r2;
-    digitalWrite(PIN_RELAY2, r2_state ? LOW : HIGH);
-    flash_log_relay(2, r2_state);
-    fb_log_relay(2, r2_state);
-  }
-}
+// fb_read_relays() UKLONJENA — relay logika je lokalna, Firebase je samo output
 
 void fb_sync_settings() {
   String resp = fb_get("/settings");
@@ -439,6 +407,15 @@ void fb_sync_settings() {
   if(b>=0) obs_mode=(bool)b;
 
   if (changed) { settings_save(); Serial.println("[FB] Settings synced"); }
+
+  // Pushover tokeni
+  String cfg_resp = fb_get("/config");
+  if (cfg_resp.length() > 5) {
+    int ti = cfg_resp.indexOf("\"po_token\":\"");
+    if (ti >= 0) { ti+=12; int te=cfg_resp.indexOf("\"",ti); cfg_resp.substring(ti,te).toCharArray(po_token,48); }
+    int ui = cfg_resp.indexOf("\"po_user\":\"");
+    if (ui >= 0) { ui+=11; int ue=cfg_resp.indexOf("\"",ui); cfg_resp.substring(ui,ue).toCharArray(po_user,48); }
+  }
 
   // Batch/ferm sesija
   String batch = fb_get("/batch");
@@ -527,18 +504,13 @@ void oled_update() {
     else display.print("Ferm: neaktivna");
 
   } else if (oled_page == 2) {
-    // Stranica 3: Flash stats / OBS mod
+    // Stranica 3: Flash stats
     display.setTextSize(1);
     display.setCursor(0,0);  display.println("FLASH STATS");
     display.setCursor(0,12); display.printf("Temp log: %u", temp_log_head);
     display.setCursor(0,24); display.printf("Relay log: %u", relay_log_head);
     display.setCursor(0,36); display.printf("Ferm hist: %u", ferm_rec_count);
-    display.setCursor(0,48);
-    if (obs_mode) {
-      display.println("OBS MOD AKTIVAN");
-    } else {
-      display.printf("Heap: %u B", ESP.getFreeHeap());
-    }
+    display.setCursor(0,48); display.printf("Heap: %u B", ESP.getFreeHeap());
 
   } else {
     // Stranica 4: Keezer dnevna statistika
@@ -614,7 +586,7 @@ void setup() {
   // WiFi — proba poznate mreže
   display.setCursor(0,20); display.println("WiFi spajam.."); display.display();
 
-  const char* known_ssids[] = {"SmartHome", "Dvoriste", "Dvoriste_EXT"};
+  const char* known_ssids[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
   const char* known_pass    = "qHx1erkt";
   bool manual_connected = false;
   for (int i = 0; i < 3; i++) {
@@ -638,32 +610,33 @@ void setup() {
   if (wifi_ok) {
     Serial.printf("[WiFi] Spojen: %s\n", WiFi.localIP().toString().c_str());
     configTime(3600, 3600, "pool.ntp.org");
-    delay(1000);
+
+    // OTA odmah nakon WiFi — prije fb_sync da ne blokira
+    ArduinoOTA.setHostname("fermentation-ctrl");
+    ArduinoOTA.onStart([]() {
+      Serial.println("[OTA] Start upload...");
+      display.clearDisplay(); display.setCursor(0,0);
+      display.println("OTA UPDATE"); display.println("Ne gasi!"); display.display();
+    });
+    ArduinoOTA.onEnd([]() {
+      Serial.println("[OTA] Gotovo! Restart...");
+      display.clearDisplay(); display.setCursor(0,0);
+      display.println("OTA GOTOVO!"); display.println("Restartujem..."); display.display();
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("[OTA] %u%%\n", progress*100/total);
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+      Serial.printf("[OTA] Greška: %u\n", error);
+    });
+    ArduinoOTA.begin();
+    Serial.println("[OTA] Spreman");
+
+    delay(500);
     fb_sync_settings();
   } else {
-    Serial.println("[WiFi] Offline mod");
+    Serial.println("[WiFi] Offline mod — koristim flash settings");
   }
-
-  // OTA
-  ArduinoOTA.setHostname("fermentation-ctrl");
-  // Lozinka maknuta — ako treba dodati nazad: ArduinoOTA.setPassword("ferm2024");
-  ArduinoOTA.onStart([]() { 
-    Serial.println("[OTA] Start upload...");
-    display.clearDisplay(); display.setCursor(0,0);
-    display.println("OTA UPDATE"); display.println("Ne gasi!"); display.display();
-  });
-  ArduinoOTA.onEnd([]() { 
-    Serial.println("[OTA] Gotovo! Restart...");
-    display.clearDisplay(); display.setCursor(0,0);
-    display.println("OTA GOTOVO!"); display.println("Restartujem..."); display.display();
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("[OTA] %u%%\n", progress*100/total);
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("[OTA] Greška: %u\n", error);
-  });
-  ArduinoOTA.begin();
 
   today_start_ts = millis()/1000;
   last_page_switch = millis();
@@ -748,6 +721,48 @@ void loop() {
     }
   }
 
+  // WiFi status + reconnect svake 30s
+  static unsigned long last_wifi_check = 0;
+  static bool was_online = false;
+  bool currently_online = (WiFi.status() == WL_CONNECTED);
+  if (currently_online != was_online) {
+    if (!currently_online) {
+      Serial.println("[WiFi] Izgubljena veza!");
+      // Pushover offline notifikacija
+      if (wifi_ok) {
+        String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) + 
+                         "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena! Radim offline.\",\"priority\":1}";
+        HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+        http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
+      }
+    } else {
+      Serial.println("[WiFi] Veza uspostavljena!");
+      configTime(3600, 3600, "pool.ntp.org");
+      ArduinoOTA.begin();
+      // Pushover online notifikacija
+      String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) + 
+                       "\",\"title\":\"ESP ONLINE\",\"message\":\"Veza uspostavljena, nastavljam normalan rad.\",\"priority\":0}";
+      HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+      http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
+      fb_sync_settings();
+    }
+    was_online = currently_online;
+  }
+  wifi_ok = currently_online;
+
+  if (!wifi_ok && (now - last_wifi_check > 30000)) {
+    last_wifi_check = now;
+    const char* ssids[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
+    for (int i = 0; i < 3; i++) {
+      Serial.printf("[WiFi] Reconnect pokusaj: %s\n", ssids[i]);
+      WiFi.begin(ssids[i], "qHx1erkt");
+      int tries = 0;
+      while (WiFi.status() != WL_CONNECTED && tries < 10) { delay(500); tries++; ArduinoOTA.handle(); }
+      if (WiFi.status() == WL_CONNECTED) break;
+      WiFi.disconnect(); delay(200);
+    }
+  }
+
   // Firebase svake 5s — samo šalje, ne prima relay naredbe
   if (wifi_ok && (now - last_fb_send > 5000)) {
     fb_send_sensors();
@@ -814,9 +829,6 @@ void loop() {
     keezer_stat_save();
     last_flash_log = now;
   }
-
-  // WiFi status
-  wifi_ok = (WiFi.status() == WL_CONNECTED);
 
   // OLED svake sekunde (samo nakon boot_done)
   if (boot_done && (now - last_oled_update > 1000)) {
