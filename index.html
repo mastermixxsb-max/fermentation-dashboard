@@ -1399,6 +1399,26 @@ function drawSpark(id,data,color,sp){
   ctx.fillText(fmt(tsMax), W-16, H-2);
 }
 
+async function loadSparkHistory(){
+  try {
+    var cutoff = Math.floor(Date.now()/1000) - 1800; // zadnjih 30 minuta
+    var resp = await fetch(FB + '/history.json');
+    var data = await resp.json();
+    if(data && typeof data === 'object'){
+      var entries = Object.values(data)
+        .filter(function(e){ return e.ts && e.ts >= cutoff; })
+        .sort(function(a,b){ return a.ts - b.ts; });
+      entries.forEach(function(e){
+        var tsMs = e.ts * 1000;
+        if(e.f !== undefined && e.f > -90) fHist.push({ts:tsMs, temp:e.f, sp:st.ferm.sp});
+        if(e.k !== undefined && e.k > -90) kHist.push({ts:tsMs, temp:e.k, sp:st.keezer.sp});
+      });
+      if(fHist.length > MAX_HIST) fHist = fHist.slice(-MAX_HIST);
+      if(kHist.length > MAX_HIST) kHist = kHist.slice(-MAX_HIST);
+    }
+  } catch(e){ console.warn('spark history load error', e); }
+}
+
 async function loadTodayStatsFromFB(){
   try {
     var resp = await fetch(FB + '/relay_log.json');
@@ -2212,6 +2232,7 @@ async function init(){
   await loadRelayLogFromFB();
   await loadCyclesFromFB();
   await loadTodayStatsFromFB();
+  await loadSparkHistory();
 
   setMsg('Historija fermentacija...', 90);
   await loadFermHistory();
