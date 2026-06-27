@@ -1367,8 +1367,8 @@ function drawSpark(id,data,color,sp){
   var vals=data.map(function(d){return d.temp;});
   if(sp !== undefined) vals.push(sp);
   var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
-  var range = Math.max(mx - mn, 0.3);
-  mn = mn - range * 0.15; mx = mx + range * 0.15; range = mx - mn;
+  var range = Math.max(mx - mn, 0.1);
+  mn = mn - range * 0.2; mx = mx + range * 0.2; range = mx - mn;
   var tsMin=data[0].ts, tsMax=data[data.length-1].ts, tsRange=tsMax-tsMin||1;
   var toX=function(ts){return((ts-tsMin)/tsRange)*W;};
   var toY=function(v){return CH-((v-mn)/range)*CH;};
