@@ -1452,19 +1452,20 @@ function oledDraw(){
     if(k.relay){ ctx.fillStyle='#00FF88'; ctx.fillRect(W-16,36,10,10); }
 
   } else if(oledPage === 1){
-    // Stranica 2: IP + Relay + SP + Mod
+    // Stranica 2: IP + Relay + SP + Verzija
     ctx.font = (6*S)+'px "Share Tech Mono", monospace';
     ctx.fillStyle = '#00BFFF';
     ctx.fillText((st.ip || '192.168.?.?'), 0, 14);
-    ctx.fillStyle = f.relay ? '#FF6B35' : '#5588AA';
-    ctx.fillText('R1:'+(f.relay?'ON ':'OFF')+' SP:'+f.sp.toFixed(1), 0, 30);
-    ctx.fillStyle = k.relay ? '#00FF88' : '#5588AA';
-    ctx.fillText('R2:'+(k.relay?'ON ':'OFF')+' SP:'+k.sp.toFixed(1), 0, 46);
+    var fwVer = (window._espDebug && window._espDebug.fw) ? window._espDebug.fw : 'v?';
     ctx.fillStyle = '#AACCDD';
-    ctx.fillText('Mod: '+(f.heat?'GRIJANJE':'HLADENJE'), 0, 64);
-    ctx.fillStyle = '#5588AA';
+    ctx.fillText('FW: '+fwVer, 0, 28);
+    ctx.fillStyle = r1State ? '#FF6B35' : '#5588AA';
+    ctx.fillText('R1:'+(r1State?'ON ':'OFF')+' SP:'+st.ferm.sp.toFixed(1), 0, 42);
+    ctx.fillStyle = k.relay ? '#00FF88' : '#5588AA';
+    ctx.fillText('R2:'+(k.relay?'ON ':'OFF')+' SP:'+k.sp.toFixed(1), 0, 56);
+    ctx.fillStyle = '#AACCDD';
     var batchName = (window.batch && window.batch.name) ? window.batch.name.substring(0,12) : 'neaktivna';
-    ctx.fillText('Ferm: '+batchName, 0, 80);
+    ctx.fillText('Ferm: '+batchName, 0, 70);
 
   } else if(oledPage === 2){
     // Stranica 3: Flash stats
