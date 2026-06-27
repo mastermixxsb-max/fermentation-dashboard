@@ -1412,106 +1412,91 @@ async function loadTodayStatsFromFB(){
 function oledDraw(){
   var canvas = g('oled-canvas'); if(!canvas) return;
   var ctx = canvas.getContext('2d');
-  // Canvas je 256x128 (2x skala originalnog 128x64 OLED-a)
-  var W=256, H=128, S=2; // S=scale faktor
+  var W=256, H=128, S=2;
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   ctx.imageSmoothingEnabled = false;
 
   var f = st.ferm, k = st.keezer;
-  var fT = f.temp!==null ? f.temp.toFixed(1) : '--.-';
-  var kT = k.temp!==null ? k.temp.toFixed(1) : '--.-';
+  var fT = f.temp!==null ? (f.temp).toFixed(1) : '--.-';
+  var kT = k.temp!==null ? (k.temp).toFixed(1) : '--.-';
+  var d = window._espDebug || {};
 
-  // Piksel font simulacija: bijeli tekst na crnoj pozadini
-  ctx.fillStyle = '#00BFFF'; // SSD1306 plava nijansa
-  ctx.font = 'bold '+(8*S)+'px "Share Tech Mono", monospace';
+  var freeze_alarm = k.temp !== null && k.temp < 1.0;
+  var keezer_alarm = k.temp !== null && k.temp < (k.sp - (d.keezer_al||2));
+  var ferm_alarm   = f.temp !== null && f.temp > (f.sp + (d.ferm_al||2));
+  var hasAlarm = freeze_alarm || keezer_alarm || ferm_alarm;
 
-  if(oledPage === 0){
-    // Stranica 1: WiFi + Flash + Temp
-    ctx.font = (6*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#00BFFF';
-    ctx.fillText('WiFi OK', 0, 12);
-    ctx.fillStyle = f.relay ? '#00FF88' : '#00BFFF';
-    ctx.fillText('FL:OK', 180, 12);
+  if(hasAlarm && Math.floor(Date.now()/500)%2===0){
+    ctx.fillStyle='#FF0000';
+    ctx.font='bold '+(8*S)+'px "Share Tech Mono", monospace';
+    ctx.fillText('!! ALARM !!', 0, 20);
+    ctx.font=(6*S)+'px "Share Tech Mono", monospace';
+    ctx.fillStyle='#FFAAAA';
+    if(freeze_alarm){ ctx.fillText('SMRZAVANJE! K:'+kT+'C', 0, 40); ctx.fillText('R2: ISKLJUCEN', 0, 58); }
+    else if(keezer_alarm){ ctx.fillText('KEEZER: K:'+kT+'C', 0, 40); ctx.fillText('SP:'+k.sp.toFixed(1)+' ALARM!', 0, 58); }
+    else { ctx.fillText('FERM: F:'+fT+'C', 0, 40); ctx.fillText('SP:'+f.sp.toFixed(1)+' ALARM!', 0, 58); }
+    for(var i=0;i<OLED_PAGES;i++){ ctx.fillStyle='#333'; ctx.fillRect(W/2-(OLED_PAGES*10)/2+i*10+2,H-10,6,6); }
+    var lbl2=g('oled-page-lbl'); if(lbl2) lbl2.textContent='ALARM';
+    ctx.display; return;
+  }
 
-    // Ferm temp — velika
-    ctx.fillStyle = '#00BFFF';
-    ctx.font = 'bold '+(9*S)+'px "Share Tech Mono", monospace';
-    ctx.fillText('F:', 0, 38);
-    ctx.font = 'bold '+(12*S)+'px "Share Tech Mono", monospace';
-    ctx.fillText(fT, 36, 40);
+  // Status bar
+  ctx.font=(5*S)+'px "Share Tech Mono", monospace';
+  var rssi = d.rssi || -80;
+  var bars = rssi > -60 ? 3 : rssi > -75 ? 2 : 1;
+  ctx.fillStyle='#00BFFF';
+  ctx.fillRect(0,3,2,6); if(bars>=2) ctx.fillRect(4,1,2,8); if(bars>=3) ctx.fillRect(8,0,2,9);
+  ctx.fillStyle = st.ip ? '#00BFFF' : '#FF6B35';
+  var ssid = d.ssid || (st.ip ? 'Online' : 'Offline');
+  ctx.fillText(ssid.substring(0,10), 14, 9);
+  ctx.fillStyle = d.flash !== false ? '#00FF88' : '#FF6B35';
+  ctx.fillText(d.flash !== false ? 'FL:OK' : 'FL:ERR', 192, 9);
+  ctx.fillStyle='#1a3a2a'; ctx.fillRect(0,11,W,1);
 
-    // Keezer temp
-    ctx.font = 'bold '+(9*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#00FF88';
-    ctx.fillText('K:', 0, 82);
-    ctx.font = 'bold '+(12*S)+'px "Share Tech Mono", monospace';
-    ctx.fillText(kT, 36, 84);
-
-    // Relay LED simulacija
-    if(f.relay){ ctx.fillStyle='#FF6B35'; ctx.fillRect(W-16,20,10,10); }
-    if(k.relay){ ctx.fillStyle='#00FF88'; ctx.fillRect(W-16,36,10,10); }
-
-  } else if(oledPage === 1){
-    // Stranica 2: IP + FW verzija + Relay + SP
-    ctx.font = (6*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#00BFFF';
-    ctx.fillText((st.ip || '192.168.?.?'), 0, 12);
-    var fwVer = (window._espDebug && window._espDebug.fw) ? window._espDebug.fw : 'v?';
-    ctx.fillStyle = '#AACCDD';
-    ctx.fillText('FW: '+fwVer, 0, 26);
-    ctx.fillStyle = st.ferm.relay ? '#FF6B35' : '#5588AA';
-    ctx.fillText('R1:'+(st.ferm.relay?'ON ':'OFF')+' SP:'+st.ferm.sp.toFixed(1), 0, 40);
+  ctx.font=(6*S)+'px "Share Tech Mono", monospace';
+  if(oledPage===0){
+    ctx.fillStyle='#AACCDD'; ctx.fillText('F:', 0, 36);
+    ctx.font='bold '+(10*S)+'px "Share Tech Mono", monospace';
+    ctx.fillStyle='#00BFFF'; ctx.fillText(fT, 22, 40);
+    ctx.fillStyle = f.relay ? '#FF6B35' : '#333'; ctx.fillRect(W-12,28,8,8);
+    ctx.font=(6*S)+'px "Share Tech Mono", monospace';
+    ctx.fillStyle='#AACCDD'; ctx.fillText('K:', 0, 80);
+    ctx.font='bold '+(10*S)+'px "Share Tech Mono", monospace';
+    ctx.fillStyle='#00FF88'; ctx.fillText(kT, 22, 84);
+    ctx.fillStyle = k.relay ? '#00FF88' : '#333'; ctx.fillRect(W-12,72,8,8);
+  } else if(oledPage===1){
+    ctx.font=(6*S)+'px "Share Tech Mono", monospace';
+    ctx.fillStyle='#AACCDD'; ctx.fillText('FW: '+(d.fw||'v?'), 0, 28);
+    ctx.fillStyle = f.relay ? '#FF6B35' : '#5588AA';
+    ctx.fillText('R1:'+(f.relay?'ON ':'OFF')+' SP:'+f.sp.toFixed(1), 0, 44);
     ctx.fillStyle = k.relay ? '#00FF88' : '#5588AA';
-    ctx.fillText('R2:'+(k.relay?'ON ':'OFF')+' SP:'+k.sp.toFixed(1), 0, 54);
-    ctx.fillStyle = '#5588AA';
-    var batchName = (window.batch && window.batch.name) ? window.batch.name.substring(0,14) : 'neaktivna';
-    ctx.fillText('Ferm: '+batchName, 0, 68);
-
-  } else if(oledPage === 2){
-    // Stranica 3: Flash stats
-    ctx.font = 'bold '+(7*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#00BFFF';
-    ctx.fillText('FLASH STATS', 0, 16);
-    ctx.font = (6*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#AACCDD';
-    var d = window._espDebug || {};
-    ctx.fillText('Temp log: '+(d.temp_log !== undefined ? d.temp_log : '--'), 0, 34);
-    ctx.fillText('Relay log: '+(d.relay_log !== undefined ? d.relay_log : '--'), 0, 50);
-    ctx.fillText('Ferm hist: '+(d.ferm_hist !== undefined ? d.ferm_hist : '--'), 0, 66);
-    ctx.fillStyle = '#5588AA';
-    ctx.fillText('Heap: '+(d.heap||'--'), 0, 82);
-    ctx.fillText('RSSI: '+(d.rssi||'--'), 130, 82);
-
+    ctx.fillText('R2:'+(k.relay?'ON ':'OFF')+' SP:'+k.sp.toFixed(1), 0, 60);
+    ctx.fillStyle='#5588AA';
+    var bn=(window.batch&&window.batch.name)?window.batch.name.substring(0,14):'neaktivna';
+    ctx.fillText('Ferm: '+bn, 0, 76);
+  } else if(oledPage===2){
+    ctx.fillStyle='#00BFFF'; ctx.fillText('FLASH STATS', 0, 28);
+    ctx.fillStyle='#AACCDD';
+    ctx.fillText('Temp: '+(d.temp_log||'--'), 0, 44);
+    ctx.fillText('Relay: '+(d.relay_log||'--'), 0, 60);
+    ctx.fillStyle='#5588AA'; ctx.fillText('Heap: '+(d.heap||'--'), 0, 76);
   } else {
-    // Stranica 4: Keezer stat (iz ESP Firebase /debug)
-    ctx.font = 'bold '+(7*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#00FF88';
-    ctx.fillText('KEEZER STAT', 0, 16);
-    ctx.font = (6*S)+'px "Share Tech Mono", monospace';
-    ctx.fillStyle = '#AACCDD';
-    // Izračun iz lokalnog praćenja ciklusa
-    var todayOnSec = window._todayOnSec || 0;
-    var todayCycles = window._todayCycles || 0;
-    var kWh = ((todayOnSec/3600)*0.075).toFixed(3);
-    var onH = Math.floor(todayOnSec/3600);
-    var onM = Math.floor((todayOnSec%3600)/60);
-    ctx.fillText('ON danas: '+onH+'h '+onM+'m', 0, 34);
-    ctx.fillText('Ciklusi: '+todayCycles, 0, 50);
-    ctx.fillText('kWh: '+kWh, 0, 66);
-    ctx.fillStyle = k.relay ? '#00FF88' : '#5588AA';
-    ctx.fillText(k.relay ? 'Kompresor: ON' : 'Kompresor: OFF', 0, 82);
+    ctx.fillStyle='#00FF88'; ctx.fillText('KEEZER STAT', 0, 28);
+    ctx.fillStyle='#AACCDD';
+    var tos=window._todayOnSec||0;
+    ctx.fillText('ON: '+Math.floor(tos/3600)+'h '+Math.floor((tos%3600)/60)+'m  C:'+(window._todayCycles||0), 0, 44);
+    ctx.fillText('kWh: '+((tos/3600*0.075).toFixed(3)), 0, 60);
+    ctx.fillStyle=k.relay?'#00FF88':'#5588AA';
+    ctx.fillText(k.relay?'Kompresor: ON':'Kompresor: OFF', 0, 76);
   }
 
-  // Page indikatori (točkice dno)
-  for(var i=0; i<OLED_PAGES; i++){
-    ctx.fillStyle = i===oledPage ? '#00BFFF' : '#1a3a4a';
-    ctx.fillRect(W/2 - (OLED_PAGES*10)/2 + i*10 + 2, H-10, 6, 6);
+  for(var i=0;i<OLED_PAGES;i++){
+    ctx.fillStyle=i===oledPage?'#00BFFF':'#1a3a2a';
+    ctx.fillRect(W/2-(OLED_PAGES*10)/2+i*10+2,H-10,6,6);
   }
-
-  // Page label
-  var lbl = g('oled-page-lbl');
-  if(lbl) lbl.textContent = (oledPage+1)+'/'+OLED_PAGES;
+  var lbl=g('oled-page-lbl'); if(lbl) lbl.textContent=(oledPage+1)+'/'+OLED_PAGES;
 }
+
 
 function oledPageNext(){ oledPage=(oledPage+1)%OLED_PAGES; oledDraw(); }
 function oledPagePrev(){ oledPage=(oledPage+OLED_PAGES-1)%OLED_PAGES; oledDraw(); }
