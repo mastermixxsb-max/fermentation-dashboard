@@ -1,11 +1,11 @@
 // ============================================================
-//  Fermentation + Keezer Controller v5.0
-//  Novo: Flash JEDEC retry+fallback, async DS18B20, OLED str.4,
-//        ferm_cal/keezer_cal Firebase sync, lokalna relay logika
+//  Fermentation + Keezer Controller v5.2
+//  v5.1: WiFi notifikacije debounce 5min, cooldown 10min
+//  v5.2: Freeze protection <1°C, Pushover alarm priority 2
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v5.0"
+#define FW_VERSION "v5.2"
 
 #include <Arduino.h>
 #include <WiFi.h>
