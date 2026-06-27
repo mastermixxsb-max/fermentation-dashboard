@@ -1423,7 +1423,7 @@ function oledDraw(){
 
   var freeze_alarm = k.temp !== null && k.temp < 1.0;
   var keezer_alarm = k.temp !== null && k.temp < (k.sp - (d.keezer_al||2));
-  var ferm_alarm   = f.temp !== null && f.temp > (f.sp + (d.ferm_al||2));
+  var ferm_alarm   = f.temp !== null && (fermSession !== null) && f.temp > (f.sp + (d.ferm_al||2));
   var hasAlarm = freeze_alarm || keezer_alarm || ferm_alarm;
 
   if(hasAlarm && Math.floor(Date.now()/500)%2===0){
