@@ -726,30 +726,45 @@ void loop() {
   // WiFi status + reconnect svake 30s
   static unsigned long last_wifi_check = 0;
   static bool was_online = false;
+  static unsigned long offline_since = 0;
+  static unsigned long last_po_notif = 0;
   bool currently_online = (WiFi.status() == WL_CONNECTED);
-  if (currently_online != was_online) {
-    if (!currently_online) {
-      Serial.println("[WiFi] Izgubljena veza!");
-      // Pushover offline notifikacija
-      if (wifi_ok) {
-        String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) + 
-                         "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena! Radim offline.\",\"priority\":1}";
-        HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
-        http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
-      }
-    } else {
-      Serial.println("[WiFi] Veza uspostavljena!");
-      configTime(3600, 3600, "pool.ntp.org");
-      ArduinoOTA.begin();
-      // Pushover online notifikacija
-      String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) + 
-                       "\",\"title\":\"ESP ONLINE\",\"message\":\"Veza uspostavljena, nastavljam normalan rad.\",\"priority\":0}";
+
+  if (!currently_online && was_online) {
+    // Upravo izgubio vezu — zabilježi kad
+    if (offline_since == 0) offline_since = now;
+  }
+
+  if (currently_online && !was_online) {
+    // Upravo se spojio
+    offline_since = 0;
+    Serial.println("[WiFi] Veza uspostavljena!");
+    configTime(3600, 3600, "pool.ntp.org");
+    ArduinoOTA.begin();
+    fb_sync_settings();
+    // Pushover online — samo ako je bio offline više od 60s i cooldown 5min
+    if ((now - last_po_notif) > 300000) {
+      String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
+                       "\",\"title\":\"ESP ONLINE\",\"message\":\"Veza uspostavljena.\",\"priority\":0}";
       HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
       http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
-      fb_sync_settings();
+      last_po_notif = now;
     }
-    was_online = currently_online;
   }
+
+  if (!currently_online && offline_since > 0 && (now - offline_since > 60000)) {
+    // Offline više od 60 sekundi — šalji notifikaciju
+    if ((now - last_po_notif) > 300000) {
+      Serial.println("[WiFi] Izgubljena veza!");
+      String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
+                       "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena! Radim offline.\",\"priority\":1}";
+      HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+      http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
+      last_po_notif = now;
+    }
+  }
+
+  was_online = currently_online;
   wifi_ok = currently_online;
 
   if (!wifi_ok && (now - last_wifi_check > 30000)) {
