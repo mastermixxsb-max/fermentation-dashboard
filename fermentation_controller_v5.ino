@@ -1,9 +1,11 @@
 // ============================================================
 //  Fermentation + Keezer Controller v5.0
 //  Novo: Flash JEDEC retry+fallback, async DS18B20, OLED str.4,
-//        ferm_cal/keezer_cal Firebase sync
+//        ferm_cal/keezer_cal Firebase sync, lokalna relay logika
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
+
+#define FW_VERSION "v5.0"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -491,14 +493,14 @@ void oled_update() {
     }
 
   } else if (oled_page == 1) {
-    // Stranica 2: Relay status + SP
+    // Stranica 2: Relay status + SP + Verzija
     display.setTextSize(1);
     display.setCursor(0,0);
     if (wifi_ok) display.print(WiFi.localIP().toString());
     else display.print("WiFi --");
-    display.setCursor(0,10); display.printf("R1:%s SP:%.1f", r1_state?"ON ":"OFF", cfg.ferm_sp);
-    display.setCursor(0,20); display.printf("R2:%s SP:%.1f", r2_state?"ON ":"OFF", cfg.keezer_sp);
-    display.setCursor(0,32); display.printf("Mod: %s", cfg.ferm_heat?"GRIJANJE":"HLADENJE");
+    display.setCursor(0,10); display.printf("FW: %s", FW_VERSION);
+    display.setCursor(0,20); display.printf("R1:%s SP:%.1f", r1_state?"ON ":"OFF", cfg.ferm_sp);
+    display.setCursor(0,32); display.printf("R2:%s SP:%.1f", r2_state?"ON ":"OFF", cfg.keezer_sp);
     display.setCursor(0,44);
     if (ferm_session_active) display.printf("Ferm: %.12s", ferm_name);
     else display.print("Ferm: neaktivna");
@@ -535,7 +537,7 @@ void oled_update() {
 // ── Setup ─────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n[BOOT] Fermentation Controller v5.0");
+  Serial.println("\n[BOOT] Fermentation Controller " FW_VERSION);
 
   // Relaji — active LOW
   pinMode(PIN_RELAY1, OUTPUT); digitalWrite(PIN_RELAY1, HIGH);
@@ -546,7 +548,7 @@ void setup() {
   if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     display.clearDisplay();
     display.setTextSize(1); display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0,0); display.println("FermCtrl v5.0");
+    display.setCursor(0,0); display.println("FermCtrl " FW_VERSION);
     display.println("Bootam...");
     display.display();
   }
@@ -796,9 +798,9 @@ void loop() {
   if (wifi_ok && (now - last_debug_log > 300000)) {
     char dbg[192];
     snprintf(dbg, sizeof(dbg),
-      "{\"uptime\":%lu,\"heap\":%u,\"rssi\":%d,\"flash\":%s,\"obs\":%s,\"temp_log\":%u,\"relay_log\":%u,\"ferm_hist\":%u}",
+      "{\"uptime\":%lu,\"heap\":%u,\"rssi\":%d,\"flash\":%s,\"obs\":%s,\"fw\":\"%s\",\"temp_log\":%u,\"relay_log\":%u,\"ferm_hist\":%u}",
       millis()/1000, ESP.getFreeHeap(), WiFi.RSSI(),
-      flash_ok?"true":"false", obs_mode?"true":"false",
+      flash_ok?"true":"false", obs_mode?"true":"false", FW_VERSION,
       temp_log_head, relay_log_head, ferm_rec_count);
     fb_put("/debug", String(dbg));
     last_debug_log = now;
