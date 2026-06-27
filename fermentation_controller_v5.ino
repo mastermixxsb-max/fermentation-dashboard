@@ -742,8 +742,8 @@ void loop() {
     configTime(3600, 3600, "pool.ntp.org");
     ArduinoOTA.begin();
     fb_sync_settings();
-    // Pushover online — samo ako je bio offline više od 60s i cooldown 5min
-    if ((now - last_po_notif) > 300000) {
+    // Pushover online — cooldown 10min
+    if ((now - last_po_notif) > 600000) {
       String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
                        "\",\"title\":\"ESP ONLINE\",\"message\":\"Veza uspostavljena.\",\"priority\":0}";
       HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
@@ -752,9 +752,9 @@ void loop() {
     }
   }
 
-  if (!currently_online && offline_since > 0 && (now - offline_since > 60000)) {
-    // Offline više od 60 sekundi — šalji notifikaciju
-    if ((now - last_po_notif) > 300000) {
+  if (!currently_online && offline_since > 0 && (now - offline_since > 300000)) {
+    // Offline više od 5 minuta — šalji notifikaciju
+    if ((now - last_po_notif) > 600000) { // cooldown 10 minuta
       Serial.println("[WiFi] Izgubljena veza!");
       String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
                        "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena! Radim offline.\",\"priority\":1}";
