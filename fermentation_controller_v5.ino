@@ -461,7 +461,7 @@ void oled_update() {
   // ── Alarm provjera — pregazi normalnu rotaciju ─────────────
   bool freeze_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < 1.0;
   bool keezer_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < (cfg.keezer_sp - cfg.keezer_al);
-  bool ferm_alarm    = ferm_ok   && (ferm_temp   + cfg.ferm_cal)   > (cfg.ferm_sp   + cfg.ferm_al);
+  bool ferm_alarm    = ferm_ok && ferm_session_active && (ferm_temp + cfg.ferm_cal) > (cfg.ferm_sp + cfg.ferm_al);
 
   if (freeze_alarm || keezer_alarm || ferm_alarm) {
     // Alarm stranica — treperi svake sekunde
