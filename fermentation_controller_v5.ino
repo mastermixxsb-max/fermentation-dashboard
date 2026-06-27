@@ -696,10 +696,63 @@ void loop() {
     last_temp_read = now;
   }
 
-  // Firebase svake 5s
+  // ── Lokalna relay logika (radi i bez WiFi/Firebase) ──────────
+  if (ferm_ok && cfg.ferm_en) {
+    bool should_r1;
+    if (cfg.ferm_heat) {
+      should_r1 = (ferm_temp + cfg.ferm_cal) < (cfg.ferm_sp - cfg.ferm_hy) ? true :
+                  (ferm_temp + cfg.ferm_cal) >= cfg.ferm_sp ? false : r1_state;
+    } else {
+      should_r1 = (ferm_temp + cfg.ferm_cal) > (cfg.ferm_sp + cfg.ferm_hy) ? true :
+                  (ferm_temp + cfg.ferm_cal) <= cfg.ferm_sp ? false : r1_state;
+    }
+    if (should_r1 != r1_state) {
+      r1_state = should_r1;
+      digitalWrite(PIN_RELAY1, r1_state ? LOW : HIGH);
+      fb_log_relay(1, r1_state);
+    }
+  }
+
+  if (keezer_ok && cfg.keezer_en && !obs_mode) {
+    float kt = keezer_temp + cfg.keezer_cal;
+    // Safe limit — ako temp padne prenisko, blokiraj kompresor
+    bool safe = (kt > (cfg.keezer_sp - cfg.safe_limit));
+    bool should_r2;
+    if (!safe) {
+      should_r2 = false; // Blokiraj — prenisko
+      if (r2_state) Serial.printf("[KEEZER] Safe limit! %.1f < %.1f\n", kt, cfg.keezer_sp - cfg.safe_limit);
+    } else {
+      should_r2 = kt > (cfg.keezer_sp + cfg.keezer_hy) ? true :
+                  kt <= cfg.keezer_sp ? false : r2_state;
+    }
+    // Kompresor delay zaštita
+    unsigned long delay_ms = (unsigned long)(cfg.comp_delay_min * 60000);
+    if (should_r2 && !r2_state && comp_off_ts > 0 && (now - comp_off_ts) < delay_ms) {
+      should_r2 = false; // Čekaj delay
+    }
+    if (should_r2 != r2_state) {
+      if (!should_r2) {
+        if (keezer_on_ts > 0) {
+          today_on_sec += (millis()-keezer_on_ts)/1000;
+          today_cycles++;
+          keezer_on_ts = 0;
+        }
+        comp_off_ts = now;
+      } else {
+        keezer_on_ts = now;
+      }
+      r2_state = should_r2;
+      digitalWrite(PIN_RELAY2, r2_state ? LOW : HIGH);
+      flash_log_relay(2, r2_state);
+      fb_log_relay(2, r2_state);
+    }
+  }
+
+  // Firebase svake 5s — samo šalje, ne prima relay naredbe
   if (wifi_ok && (now - last_fb_send > 5000)) {
     fb_send_sensors();
-    fb_read_relays();
+    // fb_read_relays() maknuto — lokalna logika je jedina istina
+    // Firebase /relays se ažurira iz fb_send_sensors (r1/r2 stanje)
     last_fb_send = now;
   }
 
