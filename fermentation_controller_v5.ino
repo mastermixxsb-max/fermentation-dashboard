@@ -1,11 +1,12 @@
 // ============================================================
-//  Fermentation + Keezer Controller v5.2
+//  Fermentation + Keezer Controller v5.3
 //  v5.1: WiFi notifikacije debounce 5min, cooldown 10min
 //  v5.2: Freeze protection <1°C, Pushover alarm priority 2
+//  v5.3: OLED redesign - status bar, alarm stranica, boot sekvenca
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v5.2"
+#define FW_VERSION "v5.3"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -452,28 +453,73 @@ void read_temps() {
 
 // ── OLED ─────────────────────────────────────────────────────
 void oled_update() {
-  // Ne prikazuj boot screen nakon što je boot završen
   if (!boot_done) return;
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
 
-  // Rotacija stranica svake 4s
+  // ── Alarm provjera — pregazi normalnu rotaciju ─────────────
+  bool freeze_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < 1.0;
+  bool keezer_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < (cfg.keezer_sp - cfg.keezer_al);
+  bool ferm_alarm    = ferm_ok   && (ferm_temp   + cfg.ferm_cal)   > (cfg.ferm_sp   + cfg.ferm_al);
+
+  if (freeze_alarm || keezer_alarm || ferm_alarm) {
+    // Alarm stranica — treperi svake sekunde
+    if ((millis()/500) % 2 == 0) {
+      display.setTextSize(1);
+      display.setCursor(0,0); display.print("!! ALARM !!");
+      display.setCursor(0,12);
+      if (freeze_alarm) {
+        display.printf("SMRZAVANJE! K:%.1fC", keezer_temp+cfg.keezer_cal);
+        display.setCursor(0,24); display.print("R2: ISKLJUCEN");
+      } else if (keezer_alarm) {
+        display.printf("KEEZER: K:%.1fC", keezer_temp+cfg.keezer_cal);
+        display.setCursor(0,24); display.printf("SP:%.1f AL:%.1f", cfg.keezer_sp, cfg.keezer_al);
+      } else {
+        display.printf("FERM: F:%.1fC", ferm_temp+cfg.ferm_cal);
+        display.setCursor(0,24); display.printf("SP:%.1f AL:%.1f", cfg.ferm_sp, cfg.ferm_al);
+      }
+    }
+    display.display();
+    return;
+  }
+
+  // ── Status bar — uvijek na vrhu ────────────────────────────
+  auto drawStatusBar = [&]() {
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    // WiFi signal simulacija s ASCII
+    if (wifi_ok) {
+      int rssi = WiFi.RSSI();
+      if (rssi > -60) display.print("|||");
+      else if (rssi > -75) display.print("|| ");
+      else display.print("|  ");
+      display.print(" ");
+      // Naziv mreže (skraćen na 9 znakova)
+      String ssid = WiFi.SSID();
+      if (ssid.length() > 9) ssid = ssid.substring(0,9);
+      display.print(ssid);
+    } else {
+      display.print("--- OFFLINE");
+    }
+    display.setCursor(96,0);
+    display.print(flash_ok ? "FL:OK" : "FL:ERR");
+    // Linija ispod status bara
+    display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
+  };
+
+  // ── Rotacija stranica svake 4s ─────────────────────────────
   if (millis()-last_page_switch > 4000) {
     oled_page = (oled_page+1)%4;
     last_page_switch = millis();
   }
 
+  drawStatusBar();
+
   if (oled_page == 0) {
-    // Stranica 1: Status + Temperature (originalni layout, veće temp)
-    display.setTextSize(1);
-    display.setCursor(0,0);
-    display.print(wifi_ok ? "WiFi OK" : "WiFi --");
-    display.setCursor(72,0);
-    display.println(flash_ok ? "FL:OK" : "FL:ERR");
-    // Temperatura Ferm — textSize 3 (najveći)
+    // Stranica 1: Temperature — velika slova
     display.setTextSize(2);
-    display.setCursor(0,14);
+    display.setCursor(0,13);
     if (ferm_ok) {
       display.print("F:");
       display.setTextSize(3);
@@ -481,7 +527,6 @@ void oled_update() {
     } else {
       display.print("F: ERR");
     }
-    // Temperatura Keezer
     display.setTextSize(2);
     display.setCursor(0,40);
     if (keezer_ok) {
@@ -493,14 +538,11 @@ void oled_update() {
     }
 
   } else if (oled_page == 1) {
-    // Stranica 2: Relay status + SP + Verzija
+    // Stranica 2: Relay + SP + FW verzija
     display.setTextSize(1);
-    display.setCursor(0,0);
-    if (wifi_ok) display.print(WiFi.localIP().toString());
-    else display.print("WiFi --");
-    display.setCursor(0,10); display.printf("FW: %s", FW_VERSION);
-    display.setCursor(0,20); display.printf("R1:%s SP:%.1f", r1_state?"ON ":"OFF", cfg.ferm_sp);
-    display.setCursor(0,32); display.printf("R2:%s SP:%.1f", r2_state?"ON ":"OFF", cfg.keezer_sp);
+    display.setCursor(0,13); display.printf("FW: %s", FW_VERSION);
+    display.setCursor(0,24); display.printf("R1:%s SP:%.1f", r1_state?"ON ":"OFF", cfg.ferm_sp);
+    display.setCursor(0,34); display.printf("R2:%s SP:%.1f", r2_state?"ON ":"OFF", cfg.keezer_sp);
     display.setCursor(0,44);
     if (ferm_session_active) display.printf("Ferm: %.12s", ferm_name);
     else display.print("Ferm: neaktivna");
@@ -508,21 +550,19 @@ void oled_update() {
   } else if (oled_page == 2) {
     // Stranica 3: Flash stats
     display.setTextSize(1);
-    display.setCursor(0,0);  display.println("FLASH STATS");
-    display.setCursor(0,12); display.printf("Temp log: %u", temp_log_head);
+    display.setCursor(0,13); display.printf("Temp log: %u", temp_log_head);
     display.setCursor(0,24); display.printf("Relay log: %u", relay_log_head);
-    display.setCursor(0,36); display.printf("Ferm hist: %u", ferm_rec_count);
-    display.setCursor(0,48); display.printf("Heap: %u B", ESP.getFreeHeap());
+    display.setCursor(0,34); display.printf("Ferm hist: %u", ferm_rec_count);
+    display.setCursor(0,44); display.printf("Heap: %u B", ESP.getFreeHeap());
 
   } else {
-    // Stranica 4: Keezer dnevna statistika
+    // Stranica 4: Keezer stat
     display.setTextSize(1);
-    display.setCursor(0,0);  display.println("KEEZER STAT");
-    display.setCursor(0,12); display.printf("ON danas: %uh %um",
+    display.setCursor(0,13); display.printf("ON danas: %uh %um",
       today_on_sec/3600, (today_on_sec%3600)/60);
     display.setCursor(0,24); display.printf("Ciklusi: %u", today_cycles);
-    display.setCursor(0,36); display.printf("kWh: %.3f", (today_on_sec/3600.0)*0.075);
-    display.setCursor(0,48);
+    display.setCursor(0,34); display.printf("kWh: %.3f", (today_on_sec/3600.0)*75.0/1000.0);
+    display.setCursor(0,44);
     if (keezer_on_ts > 0) {
       uint32_t run_sec = (millis()-keezer_on_ts)/1000;
       display.printf("Radi: %um %us", run_sec/60, run_sec%60);
@@ -543,13 +583,14 @@ void setup() {
   pinMode(PIN_RELAY1, OUTPUT); digitalWrite(PIN_RELAY1, HIGH);
   pinMode(PIN_RELAY2, OUTPUT); digitalWrite(PIN_RELAY2, HIGH);
 
-  // OLED boot screen
+  // OLED boot screen ekran 1
   Wire.begin(OLED_SDA, OLED_SCL);
   if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     display.clearDisplay();
     display.setTextSize(1); display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0,0); display.println("FermCtrl " FW_VERSION);
-    display.println("Bootam...");
+    display.setCursor(0,0); display.print("FermCtrl "); display.println(FW_VERSION);
+    display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
+    display.setCursor(0,13); display.println("Inicijalizacija...");
     display.display();
   }
 
@@ -643,20 +684,32 @@ void setup() {
   today_start_ts = millis()/1000;
   last_page_switch = millis();
 
-  // Boot OK screen — 2 sekunde pa normalni rad
-  display.clearDisplay(); display.setCursor(0,0);
-  display.println("Boot OK!");
-  display.printf("WiFi: %s\n", wifi_ok?"OK":"Offline");
-  display.printf("Flash: %s\n", flash_ok?"OK":"ERR");
+  // Boot ekran 2 — status svih komponenti
+  display.clearDisplay();
+  display.setTextSize(1); display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0); display.print("FermCtrl "); display.println(FW_VERSION);
+  display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
+  display.setCursor(0,13); display.printf("Flash: %s", flash_ok?"OK":"ERR!");
+  display.setCursor(0,24); display.printf("DS18B20: %d sond%s OK", sensors.getDeviceCount(), sensors.getDeviceCount()==1?"a":"e");
+  if (wifi_ok) {
+    display.setCursor(0,35);
+    String ssid = WiFi.SSID();
+    if (ssid.length() > 10) ssid = ssid.substring(0,10);
+    display.printf("WiFi: %s", ssid.c_str());
+    display.setCursor(0,46); display.print("OTA: spreman");
+  } else {
+    display.setCursor(0,35); display.print("WiFi: OFFLINE");
+    display.setCursor(0,46); display.print("Radim autonomno");
+  }
   display.display();
-  delay(2000);
+  delay(3000);
 
-  // BOOT DONE — od sada oled_update() prikazuje normalne stranice
+  // BOOT DONE
   boot_done = true;
   last_oled_update = 0;
   last_page_switch = millis();
 
-  Serial.println("[BOOT] Setup gotov! v5.0");
+  Serial.println("[BOOT] Setup gotov! " FW_VERSION);
 }
 
 // ── Loop ──────────────────────────────────────────────────────
