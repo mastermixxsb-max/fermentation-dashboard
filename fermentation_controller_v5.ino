@@ -690,6 +690,29 @@ void loop() {
 
   if (keezer_ok && cfg.keezer_en && !obs_mode) {
     float kt = keezer_temp + cfg.keezer_cal;
+
+    // HARD CUTOFF — zaštita od zamrzavanja
+    if (kt < 1.0 && r2_state) {
+      r2_state = false;
+      digitalWrite(PIN_RELAY2, HIGH); // OFF
+      if (keezer_on_ts > 0) {
+        today_on_sec += (millis()-keezer_on_ts)/1000;
+        today_cycles++;
+        keezer_on_ts = 0;
+      }
+      comp_off_ts = now;
+      fb_log_relay(2, false);
+      flash_log_relay(2, false);
+      Serial.printf("[KEEZER] FREEZE PROTECTION! %.1f°C < 1°C — R2 OFF!\n", kt);
+      // Pushover alarm za zamrzavanje
+      if (wifi_ok && strlen(po_token) > 5) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "{\"token\":\"%s\",\"user\":\"%s\",\"title\":\"❄️ KEEZER ALARM\",\"message\":\"Temperatura %.1f°C — ZAŠTITA OD ZAMRZAVANJA!\",\"priority\":2,\"retry\":60,\"expire\":3600}", po_token, po_user, kt);
+        HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+        http.addHeader("Content-Type","application/json"); http.POST(String(msg)); http.end();
+      }
+      return; // Preskoči normalnu logiku ovaj ciklus
+    }
     // Safe limit — ako temp padne prenisko, blokiraj kompresor
     bool safe = (kt > (cfg.keezer_sp - cfg.safe_limit));
     bool should_r2;
