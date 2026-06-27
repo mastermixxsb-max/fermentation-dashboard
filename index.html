@@ -845,8 +845,8 @@ async function poll(){
 
   runLogic(ts);
   updateUI();
-  drawSpark('sf',fHist,'#00d4ff');
-  drawSpark('sk',kHist,'#00f0a0');
+  drawSpark('sf',fHist,'#00d4ff',st.ferm.sp);
+  drawSpark('sk',kHist,'#00f0a0',st.keezer.sp);
   updateSettings();
   updateBatch(ts);
   updateFermSession();
@@ -1346,18 +1346,18 @@ function updateSettings(){
 }
 
 // ── Charts ───────────────────────────────────────────────────────
-function drawSpark(id,data,color){
+function drawSpark(id,data,color,sp){
   var canvas=g(id); if(!canvas) return;
-  // Fix: čekaj da canvas ima dimenzije (problem kad je display:none parent)
   var W=canvas.offsetWidth||canvas.clientWidth||200;
   var H=canvas.offsetHeight||canvas.clientHeight||48;
-  if(W < 10) return; // parent nije vidljiv, preskočimo
-  if(data.length < 2){ 
-    // Crtaj praznu liniju ako nema podataka
+  if(W < 10) return;
+  var PAD_B = 14; // prostor za X-os vremenske oznake
+  var CH = H - PAD_B; // visina grafa bez X-os
+  if(data.length < 2){
     var dpr=window.devicePixelRatio||1;
     canvas.width=W*dpr; canvas.height=H*dpr;
     var ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-    ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2);
+    ctx.beginPath(); ctx.moveTo(0,CH/2); ctx.lineTo(W,CH/2);
     ctx.strokeStyle=color+'22'; ctx.lineWidth=1; ctx.stroke();
     return;
   }
@@ -1365,17 +1365,38 @@ function drawSpark(id,data,color){
   canvas.width=W*dpr; canvas.height=H*dpr;
   var ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
   var vals=data.map(function(d){return d.temp;});
+  if(sp !== undefined) vals.push(sp);
   var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
-  // Auto zoom: minimalni raspon 0.5°C da se vidi svaki 0.1° pomak
-  var range = Math.max(mx - mn, 0.5);
-  mn = mn - range * 0.1; mx = mx + range * 0.1; range = mx - mn;
-  var pts=data.map(function(d,i){return{x:(i/(data.length-1))*W,y:H-((d.temp-mn)/range)*H};});
-  ctx.beginPath(); ctx.moveTo(0,H);
-  pts.forEach(function(p){ctx.lineTo(p.x,p.y);}); ctx.lineTo(W,H); ctx.closePath();
-  var gr=ctx.createLinearGradient(0,0,0,H); gr.addColorStop(0,color+'55'); gr.addColorStop(1,color+'05');
+  var range = Math.max(mx - mn, 0.3);
+  mn = mn - range * 0.15; mx = mx + range * 0.15; range = mx - mn;
+  var tsMin=data[0].ts, tsMax=data[data.length-1].ts, tsRange=tsMax-tsMin||1;
+  var toX=function(ts){return((ts-tsMin)/tsRange)*W;};
+  var toY=function(v){return CH-((v-mn)/range)*CH;};
+  var pts=data.map(function(d){return{x:toX(d.ts),y:toY(d.temp)};});
+
+  // SP linija isprekidana
+  if(sp !== undefined){
+    var spy=toY(sp);
+    ctx.beginPath(); ctx.moveTo(0,spy); ctx.lineTo(W,spy);
+    ctx.strokeStyle=color+'44'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Fill
+  ctx.beginPath(); ctx.moveTo(pts[0].x,CH);
+  pts.forEach(function(p){ctx.lineTo(p.x,p.y);}); ctx.lineTo(pts[pts.length-1].x,CH); ctx.closePath();
+  var gr=ctx.createLinearGradient(0,0,0,CH); gr.addColorStop(0,color+'55'); gr.addColorStop(1,color+'05');
   ctx.fillStyle=gr; ctx.fill();
+
+  // Linija
   ctx.beginPath(); pts.forEach(function(p,i){i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+
+  // X-os vremenske oznake — 3 točke (početak, sredina, kraj)
+  ctx.fillStyle=color+'88'; ctx.font='9px monospace'; ctx.textAlign='center';
+  var fmt=function(ts){var d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+  ctx.fillText(fmt(tsMin), 16, H-2);
+  ctx.fillText(fmt((tsMin+tsMax)/2), W/2, H-2);
+  ctx.fillText(fmt(tsMax), W-16, H-2);
 }
 
 async function loadTodayStatsFromFB(){
