@@ -1404,12 +1404,11 @@ function drawSpark(id,data,color,sp){
 
 async function loadSparkHistory(){
   try {
-    var cutoff = Math.floor(Date.now()/1000) - 1800; // zadnjih 30 minuta
-    var resp = await fetch(FB + '/history.json');
+    var resp = await fetch(FB + '/history.json?orderBy="$key"&limitToLast=35'); // ~35 zadnjih minuta
     var data = await resp.json();
     if(data && typeof data === 'object'){
       var entries = Object.values(data)
-        .filter(function(e){ return e.ts && e.ts >= cutoff; })
+        .filter(function(e){ return e && e.ts; })
         .sort(function(a,b){ return a.ts - b.ts; });
       entries.forEach(function(e){
         var tsMs = e.ts * 1000;
@@ -1424,7 +1423,7 @@ async function loadSparkHistory(){
 
 async function loadTodayStatsFromFB(){
   try {
-    var resp = await fetch(FB + '/relay_log.json');
+    var resp = await fetch(FB + '/relay_log.json?orderBy="$key"&limitToLast=200');
     var data = await resp.json();
     if(data && typeof data === 'object'){
       var now = Math.floor(Date.now()/1000);
@@ -1580,8 +1579,13 @@ async function loadHistoryAndDraw(mins){
   var lbl = g('chart-lbl');
   if(lbl) lbl.textContent = 'UČITAVAM HISTORIJU...';
 
-  // Firebase history — dohvati sve pa filtriraj lokalno (izbjegava index problem)
-  var url = FB + '/history.json';
+  // limitToLast ovisno o periodu — sprječava preveliko skidanje podataka
+  // /history piše se svake minute, pa limit = broj minuta u periodu (+ margina)
+  var limit;
+  if(mins === 0) limit = 10000; // "Sve" — max razuman limit (cca 7 dana po minuti)
+  else limit = Math.min(mins + 10, 10000);
+
+  var url = FB + '/history.json?orderBy="$key"&limitToLast=' + limit;
 
   try {
     var resp = await fetch(url);
@@ -1590,14 +1594,14 @@ async function loadHistoryAndDraw(mins){
       fHist = []; kHist = [];
       var cutoffTs = mins > 0 ? Math.floor(Date.now()/1000) - mins*60 : 0;
       var entries = Object.values(data)
-        .filter(function(e){ return e.ts && (mins===0 || e.ts >= cutoffTs); })
+        .filter(function(e){ return e && e.ts && (mins===0 || e.ts >= cutoffTs); })
         .sort(function(a,b){ return a.ts - b.ts; });
       entries.forEach(function(e){
         var tsMs = e.ts * 1000;
         if(e.f !== undefined && e.f > -90) fHist.push({ts:tsMs, temp:e.f, sp:st.ferm.sp});
         if(e.k !== undefined && e.k > -90) kHist.push({ts:tsMs, temp:e.k, sp:st.keezer.sp});
       });
-      if(lbl) lbl.textContent = 'TEMPERATURA — zadnjih '+(mins===0?'SVE':mins<60?mins+'min':(mins/60)+'h')+' ('+entries.length+' točaka)';
+      if(lbl) lbl.textContent = 'TEMPERATURA — zadnjih '+(mins===0?'SVE':mins<60?mins+'min':mins<1440?(mins/60)+'h':mins<10080?(mins/1440)+'d':(mins/10080)+'tj')+' ('+entries.length+' točaka)';
     } else {
       if(lbl) lbl.textContent = 'NEMA PODATAKA U HISTORIJI';
     }
@@ -1803,7 +1807,7 @@ async function loadRelayLogFromFB(){
 
 async function loadCyclesFromFB(){
   try {
-    var resp = await fetch(FB + '/relay_log.json');
+    var resp = await fetch(FB + '/relay_log.json?orderBy="$key"&limitToLast=2000');
     var data = await resp.json();
     if(data && typeof data === 'object'){
       var entries = Object.values(data)
