@@ -321,6 +321,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       </div>
     </div>
 
+    <!-- Sync Monitor -->
+    <div class="span2" style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:10px">ŠTO SE TRENUTNO DOGAĐA</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="sync-esp-dot" style="width:8px;height:8px;border-radius:50%;background:#3d5470;flex-shrink:0"></span>
+          <span style="font-size:11px;color:var(--text)">Kontroler šalje temperaturu <span id="sync-esp-ago" style="color:var(--muted)">— čekam...</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="sync-relay-dot" style="width:8px;height:8px;border-radius:50%;background:#3d5470;flex-shrink:0"></span>
+          <span style="font-size:11px;color:var(--text)">Zadnja promjena releja <span id="sync-relay-ago" style="color:var(--muted)">— nema podataka</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="sync-flash-dot" style="width:8px;height:8px;border-radius:50%;background:#3d5470;flex-shrink:0"></span>
+          <span style="font-size:11px;color:var(--text)">Sigurnosna kopija (flash) <span id="sync-flash-info" style="color:var(--muted)">— provjeram...</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="sync-app-dot" style="width:8px;height:8px;border-radius:50%;background:#00f0a0;flex-shrink:0"></span>
+          <span style="font-size:11px;color:var(--text)">Ova aplikacija osvježava se svake 3 sekunde</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)">
+        Kontroler radi samostalno (uključuje/isključuje grijanje i hlađenje) bez obzira na internet. Ova aplikacija samo prikazuje što se događa.
+      </div>
+    </div>
+
     <!-- OLED Widget simulacija -->
     <div class="span2" style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -815,6 +841,7 @@ async function poll(){
         hbEl.textContent='ESP OFFLINE '+(mins>60?Math.round(mins/60)+'h':mins+'min'); hbEl.style.color='var(--danger)';
       }
     }
+    updateSyncMonitor(hbAge);
   }
   var ts = Date.now();
   var blocked = (ts - lastUserInput) < USER_BLOCK;
@@ -1293,6 +1320,51 @@ function fmtDur(sec){
   if(h > 0) return h+'h '+m+'min';
   return m+'min '+s+'s';
 }
+function updateSyncMonitor(hbAgeSec){
+  // ESP → Firebase status
+  var espDot = g('sync-esp-dot'), espAgo = g('sync-esp-ago');
+  if(espDot && espAgo){
+    if(hbAgeSec < 10){
+      espDot.style.background = '#00f0a0';
+      espAgo.textContent = '— upravo sad';
+      espAgo.style.color = '#00f0a0';
+    } else if(hbAgeSec < 60){
+      espDot.style.background = '#fbbf24';
+      espAgo.textContent = '— prije '+hbAgeSec+'s';
+      espAgo.style.color = '#fbbf24';
+    } else {
+      espDot.style.background = '#ff5050';
+      var m = Math.round(hbAgeSec/60);
+      espAgo.textContent = '— prije '+m+'min! Provjeri WiFi.';
+      espAgo.style.color = '#ff5050';
+    }
+  }
+
+  // Relay — zadnja promjena (iz relayLog ako postoji)
+  var relayDot = g('sync-relay-dot'), relayAgo = g('sync-relay-ago');
+  if(relayDot && relayAgo && relayLog && relayLog.length){
+    var lastEvent = relayLog[relayLog.length-1];
+    relayDot.style.background = '#00f0a0';
+    relayAgo.textContent = '— '+(lastEvent.msg||'zabilježena')+', vidljivo u Logu';
+    relayAgo.style.color = 'var(--muted)';
+  }
+
+  // Flash status
+  var flashDot = g('sync-flash-dot'), flashInfo = g('sync-flash-info');
+  var d = window._espDebug;
+  if(flashDot && flashInfo){
+    if(d && d.flash !== undefined){
+      if(d.flash){
+        flashDot.style.background = '#00f0a0';
+        flashInfo.textContent = '— radi, '+(d.temp_log||0)+' zapisa spremljeno';
+      } else {
+        flashDot.style.background = '#ff5050';
+        flashInfo.textContent = '— ne radi (podaci se ne spremaju lokalno)';
+      }
+    }
+  }
+}
+
 function updateUI(){
   var f=st.ferm, k=st.keezer;
   var fT=f.temp!==null?f.temp.toFixed(1):'--.-';
