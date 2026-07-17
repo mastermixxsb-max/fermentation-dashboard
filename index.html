@@ -993,6 +993,10 @@ function runLogic(ts){
   else poLastSent['ferm_alarm']=0;
   if(k.alarm && k.en)  sendPushover('keezer_alarm','❄️ Keezer ALARM','Temp: '+kTemp.toFixed(1)+'°C (SP: '+k.sp.toFixed(1)+'°C)',1);
   else poLastSent['keezer_alarm']=0;
+  // Alarm za PREVISOKU keezer temperaturu (keezer otvoren, relay ne radi, itd.)
+  var kHighAlarm = k.en && kTemp > (k.sp + (k.al||2) + 2);
+  if(kHighAlarm) sendPushover('keezer_high','🌡 Keezer PREVISOKO','Temp: '+kTemp.toFixed(1)+'°C (SP: '+k.sp.toFixed(1)+'°C) — provjeri keezer!',1);
+  else poLastSent['keezer_high']=0;
   if(keezerSafeMode)   sendPushover('keezer_safe','⚠️ SAFE MODE','Keezer temp previsoka! Relaji isključeni.',2);
 
   // Fermentacijski profil
@@ -1538,8 +1542,9 @@ function oledDraw(){
 
   var freeze_alarm = k.temp !== null && k.temp < 1.0;
   var keezer_alarm = k.temp !== null && k.temp < (k.sp - (d.keezer_al||2));
+  var keezer_high  = k.temp !== null && k.temp > (k.sp + (d.keezer_al||2) + 2);
   var ferm_alarm   = f.temp !== null && (fermSession !== null) && f.temp > (f.sp + (d.ferm_al||2));
-  var hasAlarm = freeze_alarm || keezer_alarm || ferm_alarm;
+  var hasAlarm = freeze_alarm || keezer_alarm || keezer_high || ferm_alarm;
 
   if(hasAlarm && Math.floor(Date.now()/500)%2===0){
     ctx.fillStyle='#FF0000';
@@ -1548,7 +1553,8 @@ function oledDraw(){
     ctx.font=(6*S)+'px "Share Tech Mono", monospace';
     ctx.fillStyle='#FFAAAA';
     if(freeze_alarm){ ctx.fillText('SMRZAVANJE! K:'+kT+'C', 0, 40); ctx.fillText('R2: ISKLJUCEN', 0, 58); }
-    else if(keezer_alarm){ ctx.fillText('KEEZER: K:'+kT+'C', 0, 40); ctx.fillText('SP:'+k.sp.toFixed(1)+' ALARM!', 0, 58); }
+    else if(keezer_alarm){ ctx.fillText('KEEZER NISKO: K:'+kT+'C', 0, 40); ctx.fillText('SP:'+k.sp.toFixed(1)+' ALARM!', 0, 58); }
+    else if(keezer_high){ ctx.fillText('KEEZER VISOKO: K:'+kT+'C', 0, 40); ctx.fillText('SP:'+k.sp.toFixed(1)+' PROVJERI!', 0, 58); }
     else { ctx.fillText('FERM: F:'+fT+'C', 0, 40); ctx.fillText('SP:'+f.sp.toFixed(1)+' ALARM!', 0, 58); }
     for(var i=0;i<OLED_PAGES;i++){ ctx.fillStyle='#333'; ctx.fillRect(W/2-(OLED_PAGES*10)/2+i*10+2,H-10,6,6); }
     var lbl2=g('oled-page-lbl'); if(lbl2) lbl2.textContent='ALARM';
