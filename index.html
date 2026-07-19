@@ -571,6 +571,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
         </div>
       </div>
     </div>
+    <!-- v6.0: Sonda 2 — mod rada -->
+    <div class="set-card" style="grid-column:1/-1">
+      <div class="set-title">SONDA 2 — MOD RADA</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button id="p2-mode-0" class="tbtn" onclick="setProbe2Mode(0)">AMBIJENTALNA</button>
+        <button id="p2-mode-1" class="tbtn" style="color:var(--ferm)" onclick="setProbe2Mode(1)">FERMENTACIJA</button>
+        <button id="p2-mode-2" class="tbtn" style="color:var(--keezer)" onclick="setProbe2Mode(2)">KEEZER MONITOR</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px" id="p2-mode-desc">
+        Sonda samo prikazuje temperaturu okoline, bez kontrolne uloge.
+      </div>
+      <div id="p2-gap-controls" style="display:none">
+        <div class="set-row">
+          <div class="set-lbl" style="color:var(--warn)">Gap cutoff aktivan (stvarno gasi R2)</div>
+          <div class="set-ctrl">
+            <button id="gap-cutoff-btn" class="tbtn" onclick="toggleGapCutoff()">OFF</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-lbl">Gap threshold (°C)</div>
+          <div class="set-ctrl">
+            <button class="cbtn" onclick="adjGap('threshold',-0.1)">-</button>
+            <span class="cval" id="gap-thr">1.5</span>
+            <button class="cbtn" onclick="adjGap('threshold',0.1)">+</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-lbl">Gap histereza (°C)</div>
+          <div class="set-ctrl">
+            <button class="cbtn" onclick="adjGap('hysteresis',-0.05)">-</button>
+            <span class="cval" id="gap-hy">0.3</span>
+            <button class="cbtn" onclick="adjGap('hysteresis',0.05)">+</button>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">
+          Trenutni gap (keg − ambijent): <span id="gap-live" style="color:var(--keezer);font-weight:bold">--.-</span> °C
+          <span id="gap-latch-badge" style="display:none;color:var(--danger);margin-left:8px">● LATCH AKTIVAN</span>
+        </div>
+      </div>
+    </div>
     <!-- Zaštitne postavke -->
     <div class="set-card">
       <div class="set-title">ZAŠTITNE POSTAVKE</div>
@@ -872,6 +912,10 @@ async function poll(){
     if(sensors.ferm_cal !== undefined) st.ferm.cal = sensors.ferm_cal;
     if(sensors.keezer_cal !== undefined) st.keezer.cal = sensors.keezer_cal;
   }
+  // v6.0 — live gap/latch prikaz (ESP je izvor istine za ove vrijednosti)
+  if(sensors.gap !== undefined) liveGap = sensors.gap;
+  if(sensors.gapCutoffActive !== undefined) gapLatchActive = sensors.gapCutoffActive;
+  updateProbe2UI();
 
   runLogic(ts);
   updateUI();
@@ -925,8 +969,8 @@ function runLogic(ts){
   var r1InMinOn  = window._r1OnTs  && (ts-window._r1OnTs)<r1MinOnMs;
   var r1InMinOff = window._r1OffTs && (ts-window._r1OffTs)<r1MinOffMs;
 
-  // Ferm logika s minimalnim ON/OFF
-  if(f.en && fTemp!==null){
+  // Ferm logika s minimalnim ON/OFF — v6.0: radi SAMO u probe2Mode===1 (Fermentacija)
+  if(probe2Mode===1 && f.en && fTemp!==null){
     var fDiff = fTemp - f.sp;
     var wantR1 = r1;
     if(f.heat){
@@ -1149,6 +1193,10 @@ function saveSettings(){
     compDelay:st.settings.compDelay,safeLimit:st.settings.safeLimit,riseRate:st.settings.riseRate,
     compWatt:compWatt,
     obsMode:obsMode,
+    probe2Mode:probe2Mode,
+    gapCutoffEnabled:gapCutoffEnabled,
+    gapThreshold:gapThreshold,
+    gapHysteresis:gapHysteresis,
     lastModified: Date.now(),
     modifiedBy: navigator.userAgent.includes('Mobile')?'mobile':'desktop'
   });
@@ -1179,6 +1227,11 @@ async function loadSettings(){
     if(obsMode && !wasObs) obsStartTs=Date.now();
     updateObsUI();
   }
+  if(s.probe2Mode!==undefined) probe2Mode = s.probe2Mode;
+  if(s.gapCutoffEnabled!==undefined) gapCutoffEnabled = s.gapCutoffEnabled;
+  if(s.gapThreshold!==undefined) gapThreshold = s.gapThreshold;
+  if(s.gapHysteresis!==undefined) gapHysteresis = s.gapHysteresis;
+  updateProbe2UI();
   updateUI(); updateSettings();
 }
 
@@ -1195,6 +1248,52 @@ function toggleTest(sec){ lastUserInput=Date.now(); st[sec].testMode=!st[sec].te
 function adjTestTemp(sec,delta){ lastUserInput=Date.now(); st[sec].testTemp=Math.round(Math.min(50,Math.max(-10,st[sec].testTemp+delta))*10)/10; updateSettings(); saveSettings(); }
 function adjSet(param,delta){ lastUserInput=Date.now(); var lim={compDelay:[0.5,30],safeLimit:[1,20],riseRate:[0.1,5]}; st.settings[param]=Math.round(Math.min(lim[param][1],Math.max(lim[param][0],st.settings[param]+delta))*10)/10; updateSettings(); saveSettings(); }
 function adjCompW(delta){ compWatt=Math.max(50,Math.min(500,compWatt+delta)); g('comp-w-lbl').textContent=compWatt+'W'; if(g('pane-ana').classList.contains('active')) updateAna(); saveSettings(); }
+
+// ── v6.0 — Sonda 2 mod + gap-safety ──────────────────────────────
+function setProbe2Mode(m){
+  lastUserInput=Date.now();
+  probe2Mode=m;
+  var lbl = m===1?'Ferm mod: FERMENTACIJA (grijanje aktivno)':m===2?'Ferm mod: KEEZER AMBIENT MONITOR':'Ferm mod: AMBIJENTALNA';
+  addLog(lbl,'Ferm','MOD','#00d4ff');
+  updateProbe2UI();
+  saveSettings();
+}
+function toggleGapCutoff(){
+  lastUserInput=Date.now();
+  gapCutoffEnabled=!gapCutoffEnabled;
+  addLog('Gap cutoff '+(gapCutoffEnabled?'AKTIVAN':'samo log'),'Keezer','GAP','#f59e0b');
+  updateProbe2UI();
+  saveSettings();
+}
+function adjGap(param,delta){
+  lastUserInput=Date.now();
+  var lim={threshold:[0.3,4.0],hysteresis:[0.1,0.9]};
+  if(param==='threshold') gapThreshold=Math.round(Math.min(lim.threshold[1],Math.max(lim.threshold[0],gapThreshold+delta))*100)/100;
+  else gapHysteresis=Math.round(Math.min(lim.hysteresis[1],Math.max(lim.hysteresis[0],gapHysteresis+delta))*100)/100;
+  updateProbe2UI();
+  saveSettings();
+}
+function updateProbe2UI(){
+  for(var i=0;i<3;i++){
+    var btn=g('p2-mode-'+i);
+    if(btn) btn.className='tbtn'+(probe2Mode===i?' on':'');
+  }
+  var descs=['Sonda samo prikazuje temperaturu okoline, bez kontrolne uloge.',
+             'Sonda je u fermentoru — upravlja grijanjem (R1) kao i do sad.',
+             'Sonda slobodno u zraku keezera — uspoređuje se s keg sondom (gap-safety).'];
+  if(g('p2-mode-desc')) g('p2-mode-desc').textContent=descs[probe2Mode]||descs[0];
+  if(g('p2-gap-controls')) g('p2-gap-controls').style.display = probe2Mode===2 ? 'block' : 'none';
+  if(g('gap-cutoff-btn')){
+    var gcb=g('gap-cutoff-btn');
+    gcb.textContent=gapCutoffEnabled?'ON':'OFF';
+    gcb.className='tbtn'+(gapCutoffEnabled?' on':'');
+    gcb.style.color=gapCutoffEnabled?'var(--danger)':'var(--muted)';
+  }
+  if(g('gap-thr')) g('gap-thr').textContent=gapThreshold.toFixed(2);
+  if(g('gap-hy')) g('gap-hy').textContent=gapHysteresis.toFixed(2);
+  if(g('gap-live')) g('gap-live').textContent=liveGap.toFixed(2);
+  if(g('gap-latch-badge')) g('gap-latch-badge').style.display = gapLatchActive ? 'inline' : 'none';
+}
 
 // ── Mode Modal ───────────────────────────────────────────────────
 function showModeModal(){
@@ -2032,6 +2131,14 @@ function switchTab(name,btn){
 // ── Observation mod ───────────────────────────────────────────
 var obsMode = false;
 var obsStartTs = 0;
+
+// v6.0 — Sonda 2 mod + gap-safety
+var probe2Mode = 0;          // 0=Ambijentalna, 1=Fermentacija, 2=Keezer ambient monitor
+var gapCutoffEnabled = false;
+var gapThreshold = 1.5;
+var gapHysteresis = 0.3;
+var liveGap = 0;
+var gapLatchActive = false;
 var obsCycles = [];         // detektirani ciklusi iz temp grafa
 var obsLastTemp = null;
 var obsLastTs = null;
