@@ -1,12 +1,14 @@
 // ============================================================
-//  Fermentation + Keezer Controller v5.3
+//  Fermentation + Keezer Controller v6.0
 //  v5.1: WiFi notifikacije debounce 5min, cooldown 10min
 //  v5.2: Freeze protection <1°C, Pushover alarm priority 2
 //  v5.3: OLED redesign - status bar, alarm stranica, boot sekvenca
+//  v6.0: Probe2 mode select (Ambijentalna/Fermentacija/Keezer ambient
+//        monitor), R1 gate na mod, gap-safety cutoff za keg tromost
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v5.3"
+#define FW_VERSION "v6.0"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -66,7 +68,13 @@ struct Settings {
   float keezer_sp, keezer_hy, keezer_al, keezer_cal;
   bool  keezer_en;
   float comp_delay_min, safe_limit;
-  uint8_t pad[30];
+  // v6.0 — probe2 mod + gap-safety (uzeto iz pad[], ostaje flash-kompatibilno
+  // jer su stari zapisi imali te bajtove uvijek nula = safe defaults)
+  uint8_t probe2_mode;        // 0=Ambijentalna, 1=Fermentacija, 2=Keezer ambient monitor
+  bool    gap_cutoff_enabled; // false = samo log, true = stvarno gasi R2
+  float   gap_threshold;      // °C, keg-ambient razlika za cutoff (0 => default 1.5 u kodu)
+  float   gap_hysteresis;     // °C, histereza za maknuti cutoff (0 => default 0.3 u kodu)
+  uint8_t pad[20];
 };
 
 struct TempRecord {
@@ -117,6 +125,10 @@ float    ferm_sum_temp = 0;
 uint32_t ferm_sample_count = 0;
 float    ferm_min_temp = 999, ferm_max_temp = -999;
 char     ferm_name[32] = "", ferm_style[32] = "";
+
+// v6.0 — gap-safety (probe2_mode==2, keezer ambient monitor)
+float    last_gap = 0.0;
+bool     gap_latch_active = false;
 
 // OLED — boot_done flag sprječava boot screen nakon boota
 bool boot_done = false;
@@ -246,10 +258,20 @@ void settings_load() {
     cfg.ferm_en = true; cfg.ferm_heat = true;
     cfg.keezer_sp = 4.0; cfg.keezer_hy = 0.5; cfg.keezer_al = 2.0; cfg.keezer_cal = 0.0;  // CORE: SP=4, hy=0.5
     cfg.keezer_en = true; cfg.comp_delay_min = 3.0; cfg.safe_limit = 5.0;
+    cfg.probe2_mode = 0; cfg.gap_cutoff_enabled = false;
+    cfg.gap_threshold = 1.5; cfg.gap_hysteresis = 0.3;
     settings_save();
   } else {
     Serial.println("[FLASH] Settings loaded OK");
   }
+  sanitize_settings();
+}
+
+// ── v6.0 — sanitizacija probe2/gap polja (štiti od starih/garbage flash bajtova) ──
+void sanitize_settings() {
+  if (cfg.probe2_mode > 2) cfg.probe2_mode = 0;
+  if (!(cfg.gap_threshold > 0.2 && cfg.gap_threshold < 5.0)) cfg.gap_threshold = 1.5;
+  if (!(cfg.gap_hysteresis > 0.05 && cfg.gap_hysteresis < 1.0)) cfg.gap_hysteresis = 0.3;
 }
 
 // ── Flash log temp ────────────────────────────────────────────
@@ -365,6 +387,9 @@ void fb_send_sensors() {
                 ",\"keezer_ok\":" + String(keezer_ok?"true":"false") +
                 ",\"ferm_cal\":" + String(cfg.ferm_cal, 1) +
                 ",\"keezer_cal\":" + String(cfg.keezer_cal, 1) +
+                ",\"probe2Mode\":" + String(cfg.probe2_mode) +
+                ",\"gap\":" + String(last_gap, 2) +
+                ",\"gapCutoffActive\":" + String(gap_latch_active?"true":"false") +
                 ",\"r1\":" + String(r1_state?"true":"false") +
                 ",\"r2\":" + String(r2_state?"true":"false") +
                 ",\"uptime\":" + String(millis()/1000) +
@@ -405,11 +430,18 @@ void fb_sync_settings() {
   b=extractBool("ferm_heat"); if(b>=0&&(bool)b!=cfg.ferm_heat){cfg.ferm_heat=(bool)b;changed=true;}
   b=extractBool("keezer_en"); if(b>=0&&(bool)b!=cfg.keezer_en){cfg.keezer_en=(bool)b;changed=true;}
 
+  // v6.0 — probe2 mod + gap-safety
+  v=extractFloat("probe2Mode");
+  if (v>-999) { uint8_t m=(uint8_t)v; if(m<=2 && m!=cfg.probe2_mode){cfg.probe2_mode=m;changed=true;} }
+  b=extractBool("gapCutoffEnabled");
+  if(b>=0&&(bool)b!=cfg.gap_cutoff_enabled){cfg.gap_cutoff_enabled=(bool)b;changed=true;}
+  UF(gap_threshold,"gapThreshold") UF(gap_hysteresis,"gapHysteresis")
+
   // Obs mode
   b=extractBool("obsMode");
   if(b>=0) obs_mode=(bool)b;
 
-  if (changed) { settings_save(); Serial.println("[FB] Settings synced"); }
+  if (changed) { settings_save(); sanitize_settings(); Serial.println("[FB] Settings synced"); }
 
   // Pushover tokeni
   String cfg_resp = fb_get("/config");
@@ -462,8 +494,9 @@ void oled_update() {
   bool freeze_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < 1.0;
   bool keezer_alarm  = keezer_ok && (keezer_temp + cfg.keezer_cal) < (cfg.keezer_sp - cfg.keezer_al);
   bool ferm_alarm    = ferm_ok && ferm_session_active && (ferm_temp + cfg.ferm_cal) > (cfg.ferm_sp + cfg.ferm_al);
+  bool gap_alarm     = cfg.probe2_mode == 2 && cfg.gap_cutoff_enabled && gap_latch_active;
 
-  if (freeze_alarm || keezer_alarm || ferm_alarm) {
+  if (freeze_alarm || keezer_alarm || ferm_alarm || gap_alarm) {
     // Alarm stranica — treperi svake sekunde
     if ((millis()/500) % 2 == 0) {
       display.setTextSize(1);
@@ -475,6 +508,9 @@ void oled_update() {
       } else if (keezer_alarm) {
         display.printf("KEEZER: K:%.1fC", keezer_temp+cfg.keezer_cal);
         display.setCursor(0,24); display.printf("SP:%.1f AL:%.1f", cfg.keezer_sp, cfg.keezer_al);
+      } else if (gap_alarm) {
+        display.printf("GAP CUTOFF! %.1fC", last_gap);
+        display.setCursor(0,24); display.printf("Thr:%.1f R2:OFF", cfg.gap_threshold);
       } else {
         display.printf("FERM: F:%.1fC", ferm_temp+cfg.ferm_cal);
         display.setCursor(0,24); display.printf("SP:%.1f AL:%.1f", cfg.ferm_sp, cfg.ferm_al);
@@ -538,14 +574,20 @@ void oled_update() {
     }
 
   } else if (oled_page == 1) {
-    // Stranica 2: Relay + SP + FW verzija
+    // Stranica 2: Relay + SP + FW verzija + probe2 mod (v6.0)
     display.setTextSize(1);
     display.setCursor(0,13); display.printf("FW: %s", FW_VERSION);
-    display.setCursor(0,24); display.printf("R1:%s SP:%.1f", r1_state?"ON ":"OFF", cfg.ferm_sp);
+    const char* mode_lbl = cfg.probe2_mode==1 ? "FERM" : cfg.probe2_mode==2 ? "GAP" : "AMB";
+    display.setCursor(0,24); display.printf("R1:%s Mod:%s", r1_state?"ON ":"OFF", mode_lbl);
     display.setCursor(0,34); display.printf("R2:%s SP:%.1f", r2_state?"ON ":"OFF", cfg.keezer_sp);
     display.setCursor(0,44);
-    if (ferm_session_active) display.printf("Ferm: %.12s", ferm_name);
-    else display.print("Ferm: neaktivna");
+    if (cfg.probe2_mode == 2) {
+      display.printf("Gap:%.1f%s", last_gap, gap_latch_active?"!":"");
+    } else if (ferm_session_active) {
+      display.printf("Ferm: %.12s", ferm_name);
+    } else {
+      display.print("Ferm: neaktivna");
+    }
 
   } else if (oled_page == 2) {
     // Stranica 3: Flash stats
@@ -725,7 +767,8 @@ void loop() {
   }
 
   // ── Lokalna relay logika (radi i bez WiFi/Firebase) ──────────
-  if (ferm_ok && cfg.ferm_en) {
+  // v6.0: R1 (grijanje fermentora) radi SAMO kad je probe2_mode==1 (Fermentacija)
+  if (cfg.probe2_mode == 1 && ferm_ok && cfg.ferm_en) {
     bool should_r1;
     if (cfg.ferm_heat) {
       should_r1 = (ferm_temp + cfg.ferm_cal) < (cfg.ferm_sp - cfg.ferm_hy) ? true :
@@ -739,6 +782,33 @@ void loop() {
       digitalWrite(PIN_RELAY1, r1_state ? LOW : HIGH);
       fb_log_relay(1, r1_state);
     }
+  } else if (r1_state) {
+    // Mod nije Fermentacija (ili ferm_en isključen) — prisilno ugasi R1, ne treba nam
+    r1_state = false;
+    digitalWrite(PIN_RELAY1, HIGH);
+    fb_log_relay(1, false);
+    Serial.println("[R1] Mod != Fermentacija — prisilno OFF");
+  }
+
+  // ── v6.0 — Gap-safety (probe2_mode==2, Keezer ambient monitor) ──
+  // Prati razliku keg (kontrolna sonda) vs ambijent (probe2) da kompenzira
+  // tromost keg-a. Latch s histerezom sprječava treperenje oko threshold-a.
+  // gap_cutoff_enabled==false => samo računa i logira, NE gasi kompresor
+  // (log-first faza dok se ne prikupe stvarni podaci pa se postave brojevi).
+  if (cfg.probe2_mode == 2 && ferm_ok && keezer_ok) {
+    float ambient_c = ferm_temp + cfg.ferm_cal;
+    float keg_c     = keezer_temp + cfg.keezer_cal;
+    last_gap = keg_c - ambient_c;
+    if (!gap_latch_active && last_gap > cfg.gap_threshold) {
+      gap_latch_active = true;
+      Serial.printf("[GAP] Latch ON — gap %.2f > thr %.2f\n", last_gap, cfg.gap_threshold);
+    } else if (gap_latch_active && last_gap < (cfg.gap_threshold - cfg.gap_hysteresis)) {
+      gap_latch_active = false;
+      Serial.printf("[GAP] Latch OFF — gap %.2f\n", last_gap);
+    }
+  } else {
+    last_gap = 0.0;
+    gap_latch_active = false;
   }
 
   if (keezer_ok && cfg.keezer_en && !obs_mode) {
@@ -768,10 +838,15 @@ void loop() {
     }
     // Safe limit — ako temp padne prenisko, blokiraj kompresor
     bool safe = (kt > (cfg.keezer_sp - cfg.safe_limit));
+    // v6.0 — gap-safety block: latch aktivan I stvarno uključen (ne samo log-faza)
+    bool gap_block = (cfg.probe2_mode == 2 && cfg.gap_cutoff_enabled && gap_latch_active);
     bool should_r2;
-    if (!safe) {
-      should_r2 = false; // Blokiraj — prenisko
-      if (r2_state) Serial.printf("[KEEZER] Safe limit! %.1f < %.1f\n", kt, cfg.keezer_sp - cfg.safe_limit);
+    if (!safe || gap_block) {
+      should_r2 = false; // Blokiraj — prenisko ili gap-safety cutoff
+      if (r2_state) {
+        if (gap_block) Serial.printf("[GAP] Cutoff! gap=%.2f > thr=%.2f — blokiram R2\n", last_gap, cfg.gap_threshold);
+        else Serial.printf("[KEEZER] Safe limit! %.1f < %.1f\n", kt, cfg.keezer_sp - cfg.safe_limit);
+      }
     } else {
       should_r2 = kt > (cfg.keezer_sp + cfg.keezer_hy) ? true :
                   kt <= cfg.keezer_sp ? false : r2_state;
@@ -902,14 +977,16 @@ void loop() {
   if (wifi_ok && (now - last_history_log > 60000)) {
     if (ferm_ok || keezer_ok) {
       unsigned long ts = (unsigned long)time(nullptr);
-      char hist[128];
+      char hist[160];
       snprintf(hist, sizeof(hist),
-        "{\"ts\":%lu,\"f\":%.2f,\"k\":%.2f,\"r1\":%s,\"r2\":%s}",
+        "{\"ts\":%lu,\"f\":%.2f,\"k\":%.2f,\"r1\":%s,\"r2\":%s,\"gap\":%.2f,\"probe2Mode\":%u}",
         ts,
         ferm_ok   ? ferm_temp   + cfg.ferm_cal   : -99.0f,
         keezer_ok ? keezer_temp + cfg.keezer_cal : -99.0f,
         r1_state?"true":"false",
-        r2_state?"true":"false");
+        r2_state?"true":"false",
+        last_gap,
+        cfg.probe2_mode);
       String path = "/history/" + String(ts);
       fb_put(path.c_str(), String(hist));
     }
