@@ -246,7 +246,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <div id="ficon" class="icon">🧫</div>
 
       <!-- FERMENTACIJA START/STOP BAR -->
-      <div class="ferm-session-bar">
+      <div class="ferm-session-bar" id="cf-sessionbar">
         <div class="ferm-session-info" id="ferm-session-info">
           <span>Nema aktivne fermentacije</span>
         </div>
@@ -256,7 +256,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
         </div>
       </div>
 
-      <div class="rbar">
+      <div class="rbar" id="cf-rbar">
         <span class="rlbl">R1</span>
         <div class="rg"><div id="df" class="rled"></div><span id="dfl" class="rn">GRIJANJE</span></div>
         <div id="fa" style="display:none;margin-left:auto;align-items:center;gap:4px">
@@ -264,10 +264,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
           <span style="font-size:9px;color:var(--danger)">ALARM</span>
         </div>
       </div>
-      <div class="ctrl-grid">
+      <div class="ctrl-grid" id="cf-ctrlgrid">
         <div class="ctrl"><span class="clbl">SETPOINT</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',-0.5)">-</button><span class="cval" id="fsc">18.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','sp',0.5)">+</button></div></div>
         <div class="ctrl"><span class="clbl">HISTEREZA</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',-0.1)">-</button><span class="cval" id="fhc">0.5</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','hy',0.1)">+</button></div></div>
         <div class="ctrl"><span class="clbl">ALARM D</span><div class="crow"><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',-0.5)">-</button><span class="cval" id="fac">2.0</span><button class="cbtn" style="color:var(--ferm)" onclick="adj('ferm','al',0.5)">+</button></div></div>
+      </div>
+      <!-- v6.0: prikaz kad je probe2Mode==2 (Keezer ambient monitor) -->
+      <div id="cf-gapview" style="display:none;background:rgba(255,255,255,.03);border-radius:10px;padding:10px 12px;margin-top:8px">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">USPOREDBA S KEG SONDOM</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:9px;color:var(--muted)">Gap (keg − ambijent)</span>
+          <span id="cf-gap-val" style="font-size:20px;font-weight:bold;color:var(--keezer)">--.-°C</span>
+        </div>
+        <div id="cf-gap-status" style="font-size:9px;color:var(--muted);margin-top:4px">Threshold 1.5°C · cutoff samo log</div>
       </div>
     </div>
 
@@ -390,7 +399,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   </div>
   <div class="stat-grid">
     <div class="stat-card" style="border-color:rgba(0,212,255,.2)">
-      <div style="font-size:9px;color:var(--ferm);letter-spacing:2px">FERMENTACIJA</div>
+      <div style="font-size:9px;color:var(--ferm);letter-spacing:2px" id="sf-title">FERMENTACIJA</div>
       <div class="stat-vals">
         <div><div class="stat-k">Avg</div><div class="stat-v" id="sf-avg" style="color:var(--ferm)">-</div></div>
         <div><div class="stat-k">Min</div><div class="stat-v" id="sf-min" style="color:var(--ferm)">-</div></div>
@@ -1293,6 +1302,9 @@ function updateProbe2UI(){
   if(g('gap-hy')) g('gap-hy').textContent=gapHysteresis.toFixed(2);
   if(g('gap-live')) g('gap-live').textContent=liveGap.toFixed(2);
   if(g('gap-latch-badge')) g('gap-latch-badge').style.display = gapLatchActive ? 'inline' : 'none';
+  // Graf tab — naslov stat-kartice prati mod
+  var chartTitleLbl = probe2Mode===1?'FERMENTACIJA':probe2Mode===2?'AMBIJENT (gap vs keg)':'AMBIJENTALNA';
+  if(g('sf-title')) g('sf-title').textContent = chartTitleLbl;
 }
 
 // ── Mode Modal ───────────────────────────────────────────────────
@@ -1480,21 +1492,35 @@ function updateUI(){
   g('fsp').textContent=f.sp.toFixed(1); g('fsc').textContent=f.sp.toFixed(1);
   g('fhc').textContent=f.hy.toFixed(1); g('fac').textContent=f.al.toFixed(1);
   if(fd!==null){ g('fd').textContent=(fd>=0?'+':'')+fd; g('fd').style.color=fA?'#ef4444':Math.abs(fd)>f.hy?'#f59e0b':'#22c55e'; }
-  g('fn').textContent=f.en?'Fermentacija':'Ambient';
-  g('ficon').textContent=f.en?'🧫':'🌡️'; g('ficon').style.opacity=f.en?.85:.4;
+  // v6.0 — card label/kontrole sad prate probe2Mode (0=Ambijentalna,1=Fermentacija,2=Keezer monitor)
+  var modeLbl = probe2Mode===1?'Fermentacija':probe2Mode===2?'Keezer Monitor':'Ambijentalna';
+  var modeIcon = probe2Mode===1?'🧫':probe2Mode===2?'📊':'🌡️';
+  g('fn').textContent=modeLbl;
+  g('ficon').textContent=modeIcon; g('ficon').style.opacity=f.en?.85:.4;
   var ftb=g('tf'); ftb.textContent=f.en?'ON':'AMBIENT'; ftb.className='tbtn'+(f.en?' on':''); ftb.style.color=f.en?'#00d4ff':'#3d5470';
+  ftb.style.display = probe2Mode===1 ? '' : 'none';
   var mb=g('mdbtn'); mb.textContent=f.heat?'GR':'HL';
-  mb.style.cssText='border:1px solid '+(f.heat?'#ff6b35':'#38bdf8')+';background:'+(f.heat?'rgba(255,107,53,.15)':'rgba(56,189,248,.15)')+';color:'+(f.heat?'#ff6b35':'#38bdf8')+';display:'+(f.en?'':'none');
-  var fc=f.heat?'#ff6b35':'#38bdf8'; var fr=f.relay&&f.en;
+  mb.style.cssText='border:1px solid '+(f.heat?'#ff6b35':'#38bdf8')+';background:'+(f.heat?'rgba(255,107,53,.15)':'rgba(56,189,248,.15)')+';color:'+(f.heat?'#ff6b35':'#38bdf8')+';display:'+(probe2Mode===1&&f.en?'':'none');
+  var fc=f.heat?'#ff6b35':'#38bdf8'; var fr=f.relay&&f.en&&probe2Mode===1;
   g('df').style.cssText='background:'+(fr?fc:'#1a2a3a')+';border-color:'+(fr?fc:'')+';box-shadow:'+(fr?'0 0 8px '+fc:'none');
   g('dfl').textContent=f.heat?'GRIJANJE':'HLAĐENJE';
-  g('fa').style.display=fA?'flex':'none';
+  g('fa').style.display=fA&&probe2Mode===1?'flex':'none';
   g('cf').className='card'+(f.en?' ferm-on':'');
-  g('af').className='alarm-b'+(fA?' show':'');
+  g('af').className='alarm-b'+(fA&&probe2Mode===1?' show':'');
   g('r1c').className='rc'+(fr?' on':''); g('r1c').style.borderColor=fr?fc+'88':''; g('r1c').style.boxShadow=fr?'0 0 12px '+fc+'30':'';
   g('r1d').style.cssText='background:'+(fr?fc:'#1a2a3a')+';box-shadow:'+(fr?'0 0 8px '+fc:'none');
   g('r1s').textContent=fr?'ON':'OFF'; g('r1s').style.color=fr?fc:'#3d5470';
   g('r1n').textContent='R1 '+(f.heat?'GRIJANJE':'HLAĐENJE'); g('r1n').style.color=fc;
+
+  // v6.0 — show/hide sekcije kartice po modu
+  if(g('cf-sessionbar')) g('cf-sessionbar').style.display = probe2Mode===1 ? '' : 'none';
+  if(g('cf-rbar')) g('cf-rbar').style.display = probe2Mode===1 ? '' : 'none';
+  if(g('cf-ctrlgrid')) g('cf-ctrlgrid').style.display = probe2Mode===1 ? '' : 'none';
+  if(g('cf-gapview')) g('cf-gapview').style.display = probe2Mode===2 ? '' : 'none';
+  if(probe2Mode===2){
+    if(g('cf-gap-val')) g('cf-gap-val').textContent = (liveGap>=0?'+':'')+liveGap.toFixed(2)+'°C';
+    if(g('cf-gap-status')) g('cf-gap-status').innerHTML = 'Threshold '+gapThreshold.toFixed(1)+'°C · cutoff '+(gapCutoffEnabled?'<span style="color:var(--danger)">AKTIVAN</span>':'samo log')+(gapLatchActive?' · <span style="color:var(--danger)">LATCH!</span>':'');
+  }
 
   g('kt').textContent=kT; g('kt').style.color=k.en?'#00f0a0':'#3d5470';
   g('ksp').textContent=k.sp.toFixed(1); g('ksc').textContent=k.sp.toFixed(1);
