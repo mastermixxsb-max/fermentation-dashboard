@@ -2129,8 +2129,9 @@ function clearLog(){ relayLog=[]; renderLog(); g('log-cnt').textContent='LOG (0 
 // ── CSV Export ───────────────────────────────────────────────────
 function exportCSV(){
   var fmtDT=function(ts){return new Date(ts).toLocaleString('hr-HR');};
+  var probe2Label = probe2Mode===1?'Fermentacija':probe2Mode===2?'Keezer-ambijent':'Ambijentalna';
   var csv='Timestamp,Sekcija,Temperatura,Setpoint\n';
-  fHist.forEach(function(d){csv+=fmtDT(d.ts)+',Fermentacija,'+d.temp+','+d.sp+'\n';});
+  fHist.forEach(function(d){csv+=fmtDT(d.ts)+','+probe2Label+','+d.temp+','+(probe2Mode===1?d.sp:'')+'\n';});
   kHist.forEach(function(d){csv+=fmtDT(d.ts)+',Keezer,'+d.temp+','+d.sp+'\n';});
   csv+='\nTimestamp,Sekcija,Relay,Poruka\n';
   relayLog.forEach(function(e){csv+=fmtDT(e.ts)+','+e.sec+','+e.relay+','+e.msg+'\n';});
