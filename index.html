@@ -1997,12 +1997,18 @@ async function loadRelayLogFromFB(){
     if(data && typeof data === 'object'){
       window._relayLogRaw = data; // Spremi raw za graf relay periode
       var entries = Object.values(data).sort(function(a,b){return a.ts-b.ts;});
+      // v6.0 FIX: koristi stvarni ts eventa (e.ts, pravi unix epoch od v6.0),
+      // ne Date.now() (trenutak učitavanja stranice) — stari bug je uzrokovao
+      // da SVI učitani zapisi pokazuju isto vrijeme u logu (izgleda kao duplikati).
+      var REAL_TS_MIN = 1000000000;
       entries.forEach(function(e){
+        if(e.ts < REAL_TS_MIN) return; // stari uptime-format zapis prije fixa, preskoči (nepouzdano vrijeme)
         var color = e.relay===1 ? '#FF6B35' : '#00f0a0';
         var relayName = e.relay===1 ? 'Grijanje' : 'Keezer';
         var msg = relayName+' '+(e.state?'ON':'OFF');
-        relayLog.push({ts: Date.now(), msg: msg, sec: relayName, relay:'R'+e.relay, color: color});
+        relayLog.push({ts: e.ts*1000, msg: msg, sec: relayName, relay:'R'+e.relay, color: color});
       });
+      relayLog.sort(function(a,b){return a.ts-b.ts;});
       if(relayLog.length>500) relayLog=relayLog.slice(-500);
       g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
     }
