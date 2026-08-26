@@ -1632,16 +1632,17 @@ async function loadTodayStatsFromFB(){
       var entries = Object.values(data)
         .filter(function(e){ return e.relay===2; })
         .sort(function(a,b){ return a.ts-b.ts; });
-      var maxTs = entries.length ? entries[entries.length-1].ts : 0;
-      var nowMs = Date.now();
+      // v6.0 FIX: ts je pravi unix epoch (time(nullptr)), koristi direktno.
+      // BONUS FIX: todayStart filter se ranije računao ali nikad nije primijenjen —
+      // funkcija je zbrajala SVE cikluse iz zadnjih 200 loga, ne samo današnje.
+      var REAL_TS_MIN = 1000000000;
       var onTs = null; var totalSec = 0; var cycles = 0;
       entries.forEach(function(e){
-        var realMs = nowMs - (maxTs - e.ts)*1000;
-        var realSec = Math.floor(realMs/1000);
-        if(e.state===true && onTs===null){ onTs = {ts:e.ts, realMs:realMs}; }
+        var isReal = e.ts >= REAL_TS_MIN;
+        if(e.state===true && onTs===null){ onTs = {ts:e.ts, real:isReal}; }
         else if(e.state===false && onTs!==null){
           var sec = e.ts - onTs.ts;
-          if(sec > 0 && sec < 7200){
+          if(sec > 0 && sec < 7200 && onTs.real && onTs.ts >= todayStart){
             totalSec += sec;
             cycles++;
           }
@@ -2016,13 +2017,17 @@ async function loadCyclesFromFB(){
       var entries = Object.values(data)
         .filter(function(e){ return e.relay===2; })
         .sort(function(a,b){ return a.ts-b.ts; });
-      // Zadnji ts = uptime u trenutku zadnjeg relay eventi
-      // Rekonstruiramo pravo vrijeme: Date.now() - (maxTs - e.ts)*1000
-      var maxTs = entries.length ? entries[entries.length-1].ts : 0;
-      var nowMs = Date.now();
+      // v6.0 FIX: relay_log ts je OD firmware v6.0 pravi unix epoch (time(nullptr)),
+      // koristi se DIREKTNO (e.ts*1000), bez rekonstrukcije preko 'now' anchora —
+      // stara rekonstrukcija je pretpostavljala uptime format i sustavno je
+      // pomicala sve cikluse kad zadnji log event nije bio baš 'sad' (uzrok
+      // potcijenjenog mjesečnog kWh). Stariji zapisi prije fixa (ts < prag)
+      // nemaju pouzdano pravo vrijeme — isključujemo ih iz vremenski filtriranih
+      // statistika (dan/tjedan/mjesec), ali broj/trajanje ciklusa ostaje točan.
+      var REAL_TS_MIN = 1000000000; // ~9.9.2001 — sve ispod je sigurno stari uptime format
       var onTs = null;
       entries.forEach(function(e){
-        var realMs = nowMs - (maxTs - e.ts)*1000;
+        var realMs = e.ts >= REAL_TS_MIN ? e.ts*1000 : 0; // 0 = isključi iz period filtera
         if(e.state===true && onTs===null){ onTs = {uptime:e.ts, realMs:realMs}; }
         else if(e.state===false && onTs!==null){
           var sec = e.ts - onTs.uptime;
