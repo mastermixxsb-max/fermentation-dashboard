@@ -2089,18 +2089,19 @@ function updateAna(){
   g('eur-tjedan').textContent=(parseFloat(kwTj)*0.12).toFixed(2);
   g('eur-mjesec').textContent=(parseFloat(kwMj)*0.12).toFixed(2);
 
-  // Bar chart
+  // Bar chart — v6.0 FIX: isključi legacy zapise (onTs:0, nepouzdano vrijeme prije ts-fixa)
+  var timedCycles = filtered.filter(function(c){return c.onTs>0;});
   var DAYS=['Pon','Uto','Sri','Čet','Pet','Sub','Ned'];
   var buckets=[], labels=[];
   if(anaPeriod==='dan'){
     buckets=Array(24).fill(0); labels=Array.from({length:24},function(_,h){return h%6===0?h+'h':'';});
-    filtered.forEach(function(c){buckets[new Date(c.onTs).getHours()]++;});
+    timedCycles.forEach(function(c){buckets[new Date(c.onTs).getHours()]++;});
   } else if(anaPeriod==='tjedan'){
     buckets=Array(7).fill(0); labels=DAYS;
-    filtered.forEach(function(c){buckets[(new Date(c.onTs).getDay()+6)%7]++;});
+    timedCycles.forEach(function(c){buckets[(new Date(c.onTs).getDay()+6)%7]++;});
   } else {
     buckets=Array(5).fill(0); labels=['Tj1','Tj2','Tj3','Tj4','Tj5'];
-    filtered.forEach(function(c){var w=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));buckets[w]++;});
+    timedCycles.forEach(function(c){var w=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));buckets[w]++;});
   }
   var maxB=Math.max(1,Math.max.apply(null,buckets));
   var bars=g('ana-bars');
