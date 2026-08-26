@@ -2057,15 +2057,19 @@ function setAnaPeriod(p,btn){
 }
 function updateAna(){
   var now=Date.now();
-  var periodMs={dan:86400000,tjedan:604800000,mjesec:2592000000};
-  // Ciklusi iz Firebase imaju uptime onTs (mali broj) — ne možemo filtrirati po realnom vremenu
-  // Koristimo sve cikluse, period filter samo za duty % računanje
-  var filtered = cycles; // svi ciklusi
+  var nowD=new Date(now);
+  var monthStartMs=new Date(nowD.getFullYear(),nowD.getMonth(),1,0,0,0,0).getTime();
+  var monthElapsedSec=Math.max(1,(now-monthStartMs)/1000);
+  var periodMs={dan:86400000,tjedan:604800000}; // mjesec se računa posebno (kalendarski, ne rolling)
+  // v6.0 FIX: 'mjesec' je sad pravi kalendarski mjesec (1. u mjesecu 00:00 → sad),
+  // ne "zadnjih 30 dana". Ciklusi imaju pravi unix onTs od v6.0 ts-fixa.
+  var monthCycles = cycles.filter(function(c){return c.onTs>0 && c.onTs>=monthStartMs;});
+  var filtered = anaPeriod==='mjesec' ? monthCycles : cycles; // za total/avg/max/duty prikaz
   var total=filtered.length;
   var avgDur=total?Math.round(filtered.reduce(function(a,b){return a+b.sec;},0)/total):0;
   var maxDur=total?Math.max.apply(null,filtered.map(function(c){return c.sec;})):0;
   var totalOn=filtered.reduce(function(a,b){return a+b.sec;},0);
-  var periodSec={dan:86400,tjedan:604800,mjesec:2592000};
+  var periodSec={dan:86400,tjedan:604800,mjesec:monthElapsedSec}; // mjesec = koliko je mjeseca stvarno prošlo, ne fiksnih 30 dana
   var duty=Math.min(100,Math.round(totalOn/periodSec[anaPeriod]*100));
 
   g('ana-total').textContent=total||'-';
@@ -2076,8 +2080,13 @@ function updateAna(){
   // kW računanje
   var kwhFactor = compWatt / 1000; // kW po sati rada
   function calcKwh(period){
-    var ms = periodMs[period];
-    var f2 = cycles.filter(function(c){return c.onTs>=now-ms;});
+    var f2;
+    if(period==='mjesec'){
+      f2 = monthCycles; // kalendarski mjesec, ne rolling 30 dana
+    } else {
+      var ms = periodMs[period];
+      f2 = cycles.filter(function(c){return c.onTs>=now-ms;});
+    }
     var onSec = f2.reduce(function(a,b){return a+b.sec;},0);
     return (onSec/3600 * kwhFactor).toFixed(2);
   }
