@@ -10,15 +10,19 @@
 //  v6.2: WiFi notifikacije prag 5min->45min (manje spama), online notif
 //        samo ako je offline prijavljen, reconnect/boot biraju NAJJACU
 //        poznatu mrezu; dnevni Pushover digest (ponoc, tiha dostava)
+//  v6.3: Pull-OTA — periodicka provjera manifest.json na GitHubu, sam
+//        preuzme i flash-a noviji firmware.bin (WiFiClientSecure.setInsecure)
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v6.2"
+#define FW_VERSION "v6.3"
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
+#include <HTTPUpdate.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoOTA.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -827,7 +831,78 @@ void setup() {
   Serial.println("[BOOT] Setup gotov! " FW_VERSION);
 }
 
-// ── Loop ──────────────────────────────────────────────────────
+// ── Pull-OTA (v6.2) ──────────────────────────────────────────────
+// Periodicki provjerava manifest.json na GitHubu; ako je verzija novija
+// od trenutne, preuzme firmware.bin i sam se flash-a + restarta.
+// Tomislav kompajlira u Arduino IDE, pusha novi firmware.bin + azurira
+// manifest.json (version polje) na GitHub — ESP sam pokupi unutar par
+// minuta (rani check) ili najkasnije za OTA_CHECK_INTERVAL.
+#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/manifest.json"
+#define OTA_CHECK_INTERVAL 21600000UL // 6h
+unsigned long lastOtaCheck = 0;
+bool firstOtaCheckDone = false;
+
+void check_pull_ota() {
+  if (!wifi_ok) return;
+  Serial.println("[OTA] Provjeravam manifest...");
+  WiFiClientSecure client;
+  client.setInsecure(); // preskace cert provjeru — GitHub rotira TLS certifikate,
+                         // hardkodiran CA bi se s vremenom sam pokvario
+  HTTPClient http;
+  http.begin(client, OTA_MANIFEST_URL);
+  int code = http.GET();
+  if (code != 200) {
+    Serial.printf("[OTA] Manifest fetch failed: %d\n", code);
+    http.end();
+    return;
+  }
+  String body = http.getString();
+  http.end();
+
+  int vi = body.indexOf("\"version\":\"");
+  if (vi < 0) { Serial.println("[OTA] Manifest bez version polja"); return; }
+  vi += 11; int ve = body.indexOf("\"", vi);
+  String remoteVersion = body.substring(vi, ve);
+
+  int ui = body.indexOf("\"url\":\"");
+  if (ui < 0) { Serial.println("[OTA] Manifest bez url polja"); return; }
+  ui += 7; int ue = body.indexOf("\"", ui);
+  String binUrl = body.substring(ui, ue);
+  binUrl.replace("\\/", "/");
+
+  Serial.printf("[OTA] Trenutna: %s, Remote: %s\n", FW_VERSION, remoteVersion.c_str());
+  if (remoteVersion.length() == 0 || remoteVersion == FW_VERSION) {
+    Serial.println("[OTA] Vec najnovija verzija.");
+    return;
+  }
+
+  Serial.printf("[OTA] Nova verzija %s -> preuzimam sa %s\n", remoteVersion.c_str(), binUrl.c_str());
+  if (strlen(po_token) > 5) {
+    String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
+                     "\",\"title\":\"⬇️ OTA update\",\"message\":\"Preuzimam " + remoteVersion +
+                     " sa GitHuba...\",\"priority\":0}";
+    HTTPClient poh; poh.begin("https://api.pushover.net/1/messages.json");
+    poh.addHeader("Content-Type","application/json"); poh.POST(po_body); poh.end();
+  }
+
+  WiFiClientSecure otaClient;
+  otaClient.setInsecure();
+  httpUpdate.rebootOnUpdate(true); // uspjeh -> sam restarta na novi firmware
+  t_httpUpdate_return ret = httpUpdate.update(otaClient, binUrl);
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("[OTA] FAILED: %d %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("[OTA] Nema izmjena (neocekivano, provjeri manifest)");
+      break;
+    case HTTP_UPDATE_OK:
+      Serial.println("[OTA] Uspjeh — restart na novi firmware...");
+      break;
+  }
+}
+
+
 void loop() {
   ArduinoOTA.handle();
 
@@ -1012,6 +1087,18 @@ void loop() {
 
   was_online = currently_online;
   wifi_ok = currently_online;
+
+  // v6.2 — Pull-OTA: rana provjera ~2min nakon boota, pa svakih 6h
+  if (wifi_ok) {
+    if (!firstOtaCheckDone && now > 120000) {
+      firstOtaCheckDone = true;
+      lastOtaCheck = now;
+      check_pull_ota();
+    } else if (firstOtaCheckDone && (now - lastOtaCheck > OTA_CHECK_INTERVAL)) {
+      lastOtaCheck = now;
+      check_pull_ota();
+    }
+  }
 
   if (!wifi_ok && (now - last_wifi_check > 30000)) {
     last_wifi_check = now;
