@@ -1,5 +1,5 @@
 {
-  "version": "v6.3",
+  "version": "v7.0",
   "url": "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/firmware.bin",
-  "notes": "Pull-OTA sustav + WiFi notif fix + dnevni digest + I2C recovery"
+  "notes": "Milestone v7.0 - sve v6.x izmjene objedinjene"
 }
