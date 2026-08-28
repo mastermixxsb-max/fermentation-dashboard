@@ -837,7 +837,7 @@ void setup() {
 // Tomislav kompajlira u Arduino IDE, pusha novi firmware.bin + azurira
 // manifest.json (version polje) na GitHub — ESP sam pokupi unutar par
 // minuta (rani check) ili najkasnije za OTA_CHECK_INTERVAL.
-#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/manifest.json"
+#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/ota_manifest.json"
 #define OTA_CHECK_INTERVAL 21600000UL // 6h
 unsigned long lastOtaCheck = 0;
 bool firstOtaCheckDone = false;
