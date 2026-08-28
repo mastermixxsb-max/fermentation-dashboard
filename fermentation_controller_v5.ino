@@ -5,10 +5,12 @@
 //  v5.3: OLED redesign - status bar, alarm stranica, boot sekvenca
 //  v6.0: Probe2 mode select (Ambijentalna/Fermentacija/Keezer ambient
 //        monitor), R1 gate na mod, gap-safety cutoff za keg tromost
+//  v6.1: I2C bus health check + auto-recovery za OLED (rjesava povremeni
+//        "display se ugasio, ostatak radi normalno" problem)
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v6.0"
+#define FW_VERSION "v6.1"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -104,6 +106,9 @@ float    ferm_temp = 0.0, keezer_temp = 0.0;
 bool     ferm_ok = false, keezer_ok = false;
 bool     r1_state = false, r2_state = false;
 bool     wifi_ok = false, flash_ok = false;
+bool     oled_ok = false;
+unsigned long lastI2cCheck = 0;
+uint8_t  i2cFailCount = 0;
 
 uint32_t temp_log_head = 0, relay_log_head = 0;
 uint32_t ferm_rec_count = 0, kstat_head = 0;
@@ -390,6 +395,7 @@ void fb_send_sensors() {
                 ",\"probe2Mode\":" + String(cfg.probe2_mode) +
                 ",\"gap\":" + String(last_gap, 2) +
                 ",\"gapCutoffActive\":" + String(gap_latch_active?"true":"false") +
+                ",\"oledOk\":" + String(oled_ok?"true":"false") +
                 ",\"r1\":" + String(r1_state?"true":"false") +
                 ",\"r2\":" + String(r2_state?"true":"false") +
                 ",\"uptime\":" + String(millis()/1000) +
@@ -483,9 +489,41 @@ void read_temps() {
   }
 }
 
-// ── OLED ─────────────────────────────────────────────────────
+// ── I2C bus health check + recovery (v6.1) ──────────────────────
+// Wire biblioteka nema ugrađen recovery — display.display() poziv jednostavno
+// tiho prestaje raditi, dok WiFi/relay/senzori rade dalje jer su odvojeni.
+// Ovo periodički provjerava odgovara li OLED na I2C adresu, i ako ne,
+// pokreće standardnu bus-recovery proceduru (bit-bang SCL da otpusti
+// eventualno zaglavljenu SDA liniju), pa ponovno inicijalizira Wire+display.
+bool i2c_health_check() {
+  Wire.beginTransmission(0x3C);
+  return (Wire.endTransmission() == 0);
+}
+
+void i2c_bus_recover() {
+  Serial.println("[I2C] Bus recovery — otpustam I2C liniju...");
+  Wire.end();
+  pinMode(OLED_SCL, OUTPUT);
+  pinMode(OLED_SDA, INPUT_PULLUP);
+  for (int i = 0; i < 9; i++) {
+    digitalWrite(OLED_SCL, HIGH); delayMicroseconds(5);
+    digitalWrite(OLED_SCL, LOW);  delayMicroseconds(5);
+  }
+  // STOP kondicija: SDA LOW->HIGH dok je SCL HIGH
+  pinMode(OLED_SDA, OUTPUT);
+  digitalWrite(OLED_SDA, LOW);  delayMicroseconds(5);
+  digitalWrite(OLED_SCL, HIGH); delayMicroseconds(5);
+  digitalWrite(OLED_SDA, HIGH); delayMicroseconds(5);
+  delay(10);
+  Wire.begin(OLED_SDA, OLED_SCL);
+  oled_ok = display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  Serial.println(oled_ok ? "[I2C] OLED oporavljen!" : "[I2C] Recovery nije uspio, pokusat cu opet");
+}
+
+
 void oled_update() {
   if (!boot_done) return;
+  if (!oled_ok) return; // v6.1 — bus poznat kao mrtav, health check u loop() će ga pokušati oporaviti
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -627,13 +665,16 @@ void setup() {
 
   // OLED boot screen ekran 1
   Wire.begin(OLED_SDA, OLED_SCL);
-  if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  oled_ok = display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  if (oled_ok) {
     display.clearDisplay();
     display.setTextSize(1); display.setTextColor(SSD1306_WHITE);
     display.setCursor(0,0); display.print("FermCtrl "); display.println(FW_VERSION);
     display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
     display.setCursor(0,13); display.println("Inicijalizacija...");
     display.display();
+  } else {
+    Serial.println("[I2C] OLED init GREŠKA pri bootu!");
   }
 
   // Flash
@@ -764,6 +805,26 @@ void loop() {
   if (now - last_temp_read > 3000) {
     read_temps();
     last_temp_read = now;
+  }
+
+  // v6.1 — I2C health check svakih 30s. Dvije uzastopne greške = pokreni recovery.
+  if (now - lastI2cCheck > 30000) {
+    lastI2cCheck = now;
+    if (i2c_health_check()) {
+      i2cFailCount = 0;
+      if (!oled_ok) { // bio je mrtav, sad odgovara — ponovno inicijaliziraj display
+        oled_ok = display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+        Serial.println(oled_ok ? "[I2C] OLED se sam vratio!" : "[I2C] Adresa odgovara, ali display.begin i dalje ne uspijeva");
+      }
+    } else {
+      i2cFailCount++;
+      Serial.printf("[I2C] Health check FAIL (#%d)\n", i2cFailCount);
+      oled_ok = false;
+      if (i2cFailCount >= 2) {
+        i2c_bus_recover();
+        i2cFailCount = 0;
+      }
+    }
   }
 
   // ── Lokalna relay logika (radi i bez WiFi/Firebase) ──────────
