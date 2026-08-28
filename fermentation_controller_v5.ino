@@ -12,10 +12,12 @@
 //        poznatu mrezu; dnevni Pushover digest (ponoc, tiha dostava)
 //  v6.3: Pull-OTA — periodicka provjera manifest.json na GitHubu, sam
 //        preuzme i flash-a noviji firmware.bin (WiFiClientSecure.setInsecure)
+//  v7.0: Milestone release — objedinjuje sve v6.x izmjene (probe2 mode,
+//        gap-safety, I2C recovery, WiFi/notif fix, dnevni digest, pull-OTA)
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v6.3"
+#define FW_VERSION "v7.0"
 
 #include <Arduino.h>
 #include <WiFi.h>
