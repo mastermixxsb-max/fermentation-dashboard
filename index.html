@@ -739,6 +739,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <div class="set-row"><div class="set-lbl">Mod</div><div id="h-probe2" class="cval">--</div></div>
       <div class="set-row"><div class="set-lbl">Gap cutoff</div><div id="h-gapcutoff" class="cval">--</div></div>
     </div>
+
+    <div class="set-card" style="grid-column:1/-1">
+      <div class="set-title">DUTY-CYCLE TREND</div>
+      <div class="set-row"><div class="set-lbl">Zadnjih 7 dana</div><div id="h-duty-recent" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">Baza (prethodnih ~30d)</div><div id="h-duty-baseline" class="cval">--</div></div>
+      <div id="h-duty-status" style="font-size:10px;color:var(--muted);margin-top:6px">--</div>
+    </div>
   </div>
   <button onclick="refreshHealth()" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:1px solid var(--keezer);background:rgba(0,240,160,.1);color:var(--keezer);cursor:pointer;font-family:var(--mono);font-size:11px">↻ Osvježi</button>
 </div>
@@ -2226,6 +2233,27 @@ function fmtUptime(sec){
   var d=Math.floor(sec/86400), h=Math.floor((sec%86400)/3600), m=Math.floor((sec%3600)/60);
   return (d>0?d+'d ':'')+h+'h '+m+'m';
 }
+// v6.2 — usporedba duty% zadnjih 7 dana s prethodnih ~30 dana (bez zadnjih 7)
+function computeDutyTrend(){
+  var timed = cycles.filter(function(c){return c.onTs>0;});
+  if(!timed.length) return null;
+  var now = Date.now(), day = 86400000;
+  var earliestTs = Math.min.apply(null, timed.map(function(c){return c.onTs;}));
+  var baselineStart = Math.max(now - 37*day, earliestTs);
+  var baselineWindowMs = (now - 7*day) - baselineStart;
+  if(baselineWindowMs < 3*day) return null; // treba bar 3 dana baze za smislenu usporedbu
+
+  var recentCycles = timed.filter(function(c){return c.onTs >= now-7*day;});
+  var baselineCycles = timed.filter(function(c){return c.onTs >= baselineStart && c.onTs < now-7*day;});
+  var recentSec = recentCycles.reduce(function(a,b){return a+b.sec;},0);
+  var baselineSec = baselineCycles.reduce(function(a,b){return a+b.sec;},0);
+
+  return {
+    recentDuty: recentSec/(7*day/1000)*100,
+    baselineDuty: baselineSec/(baselineWindowMs/1000)*100
+  };
+}
+
 async function refreshHealth(){
   var d = window._espDebug || {};
   var s = window._lastSensors || {};
@@ -2264,6 +2292,36 @@ async function refreshHealth(){
   g('h-gapcutoff').textContent = s.gapCutoffActive?'AKTIVAN (LATCH!)':'neaktivan';
   g('h-gapcutoff').style.color = s.gapCutoffActive?'var(--danger)':'var(--ok)';
 
+  // v6.2 — Duty-cycle trend (rani signal za curenje rashladnog sredstva/brtve/ventilatora)
+  var dutyTrend = computeDutyTrend();
+  var dutyIssue = false;
+  if(dutyTrend){
+    g('h-duty-recent').textContent = dutyTrend.recentDuty.toFixed(1)+'%';
+    g('h-duty-baseline').textContent = dutyTrend.baselineDuty.toFixed(1)+'%';
+    var relChange = dutyTrend.baselineDuty>0 ? (dutyTrend.recentDuty-dutyTrend.baselineDuty)/dutyTrend.baselineDuty : 0;
+    var absChange = dutyTrend.recentDuty - dutyTrend.baselineDuty;
+    var statusEl = g('h-duty-status');
+    if(relChange>0.4 && absChange>5){
+      statusEl.textContent = '⚠ Znatno povišen duty ciklus — provjeri brtvu, plin, ventilator.';
+      statusEl.style.color = 'var(--danger)';
+      dutyIssue = true;
+    } else if(relChange>0.2 && absChange>3){
+      statusEl.textContent = '↑ Blago povišen duty ciklus — vrijedi pratiti.';
+      statusEl.style.color = 'var(--warn)';
+    } else if(relChange<-0.2){
+      statusEl.textContent = '↓ Duty ciklus je pao — moguće poboljšana izolacija/manje opterećenje.';
+      statusEl.style.color = 'var(--ok)';
+    } else {
+      statusEl.textContent = '✓ Stabilno, u očekivanom rasponu.';
+      statusEl.style.color = 'var(--ok)';
+    }
+  } else {
+    g('h-duty-recent').textContent = '--';
+    g('h-duty-baseline').textContent = '--';
+    g('h-duty-status').textContent = 'Nedovoljno povijesti za usporedbu (treba >3 dana baze).';
+    g('h-duty-status').style.color = 'var(--muted)';
+  }
+
   // Sažetak
   var issues = [];
   if(rssi!==undefined && rssi<-80) issues.push('slab WiFi signal');
@@ -2271,6 +2329,7 @@ async function refreshHealth(){
   if(d.flash===false) issues.push('flash greška');
   if(heapKb!==null && heapKb<50) issues.push('malo slobodne memorije');
   if(hbAge!==null && hbAge>120) issues.push('nema javljanja >2min');
+  if(dutyIssue) issues.push('duty-cycle trend povišen');
   var summary = g('health-summary');
   if(issues.length===0){
     summary.textContent = '✓ Sve u redu.';
