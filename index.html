@@ -219,6 +219,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <button class="tab" onclick="switchTab('ana',this)">Analitika</button>
   <button class="tab" onclick="switchTab('serija',this)">Serija</button>
   <button class="tab" onclick="switchTab('set',this)">Postavke</button>
+  <button class="tab" onclick="switchTab('health',this)">Zdravlje</button>
 </div>
 
 <!-- DASHBOARD -->
@@ -699,7 +700,49 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   </div>
 </div>
 
-<!-- Mode Modal -->
+<!-- v6.2: Health tab -->
+<div id="pane-health" class="pane">
+  <div class="set-grid">
+    <div class="set-card" style="grid-column:1/-1">
+      <div class="set-title">STATUS SUSTAVA</div>
+      <div id="health-summary" style="font-size:11px;color:var(--muted);margin-bottom:4px">Učitavam...</div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title">WIFI</div>
+      <div class="set-row"><div class="set-lbl">Signal (RSSI)</div><div id="h-rssi" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">IP adresa</div><div id="h-ip" class="cval" style="font-size:10px">--</div></div>
+      <div class="set-row"><div class="set-lbl">Zadnji javljanje</div><div id="h-heartbeat" class="cval" style="font-size:10px">--</div></div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title">I2C / OLED</div>
+      <div class="set-row"><div class="set-lbl">Display status</div><div id="h-oled" class="cval">--</div></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:6px">Auto-recovery aktivan od v6.1 — provjera svakih 30s.</div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title">FIRMWARE</div>
+      <div class="set-row"><div class="set-lbl">Verzija</div><div id="h-fw" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">Uptime</div><div id="h-uptime" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">Slobodna memorija</div><div id="h-heap" class="cval">--</div></div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title">FLASH (W25Q64)</div>
+      <div class="set-row"><div class="set-lbl">Status</div><div id="h-flash" class="cval">--</div></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:6px">Informativno — podaci se ionako pohranjuju na Firebase, ne na flash.</div>
+    </div>
+
+    <div class="set-card">
+      <div class="set-title">SONDA 2 / GAP</div>
+      <div class="set-row"><div class="set-lbl">Mod</div><div id="h-probe2" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">Gap cutoff</div><div id="h-gapcutoff" class="cval">--</div></div>
+    </div>
+  </div>
+  <button onclick="refreshHealth()" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:1px solid var(--keezer);background:rgba(0,240,160,.1);color:var(--keezer);cursor:pointer;font-family:var(--mono);font-size:11px">↻ Osvježi</button>
+</div>
+
 <div id="mode-modal" class="modal-overlay">
   <div class="modal">
     <div class="modal-title">Promjena moda</div>
@@ -874,6 +917,7 @@ async function fbPush(path, data){
 async function poll(){
   var sensors = await fbGet('/sensors');
   if(!sensors){ g('conn').className='conn-dot err'; return; }
+  window._lastSensors = sensors; // v6.2 — za Health tab
   g('conn').className='conn-dot ok';
   // Heartbeat — kad je ESP32 zadnji put poslao
   if(sensors.heartbeat){
@@ -2173,6 +2217,68 @@ function switchTab(name,btn){
   if(name==='chart') setTimeout(drawMainChart,60);
   if(name==='log') renderLog();
   if(name==='ana') updateAna();
+  if(name==='health') refreshHealth();
+}
+
+// v6.2 — Health tab
+function fmtUptime(sec){
+  if(!sec) return '--';
+  var d=Math.floor(sec/86400), h=Math.floor((sec%86400)/3600), m=Math.floor((sec%3600)/60);
+  return (d>0?d+'d ':'')+h+'h '+m+'m';
+}
+async function refreshHealth(){
+  var d = window._espDebug || {};
+  var s = window._lastSensors || {};
+  // Osvježi izravno, ne oslanjaj se samo na zadnji poll (health tab treba najnovije)
+  try {
+    var fresh = await fbGet('/debug'); if(fresh) { d = fresh; window._espDebug = fresh; }
+  } catch(e){}
+  try {
+    var freshS = await fbGet('/sensors'); if(freshS) { s = freshS; window._lastSensors = freshS; }
+  } catch(e){}
+
+  var rssi = d.rssi;
+  var rssiLabel = rssi===undefined?'--':rssi+' dBm';
+  var rssiColor = rssi===undefined?'var(--muted)':rssi>-60?'var(--ok)':rssi>-75?'var(--warn)':'var(--danger)';
+  g('h-rssi').textContent = rssiLabel; g('h-rssi').style.color = rssiColor;
+  g('h-ip').textContent = s.ip || '--';
+  var hbAge = s.heartbeat ? Math.round(Date.now()/1000 - s.heartbeat) : null;
+  g('h-heartbeat').textContent = hbAge===null?'--':(hbAge<60?hbAge+'s':Math.round(hbAge/60)+'min')+' prije';
+  g('h-heartbeat').style.color = hbAge===null?'var(--muted)':hbAge<120?'var(--ok)':'var(--danger)';
+
+  var oledOk = s.oledOk;
+  g('h-oled').textContent = oledOk===undefined?'nepoznato (stari FW)':oledOk?'OK':'PREKID — recovery u tijeku';
+  g('h-oled').style.color = oledOk===undefined?'var(--muted)':oledOk?'var(--ok)':'var(--danger)';
+
+  g('h-fw').textContent = d.fw || '--';
+  g('h-uptime').textContent = fmtUptime(d.uptime);
+  var heapKb = d.heap ? Math.round(d.heap/1024) : null;
+  g('h-heap').textContent = heapKb===null?'--':heapKb+' KB';
+  g('h-heap').style.color = heapKb===null?'var(--muted)':heapKb<50?'var(--danger)':heapKb<100?'var(--warn)':'var(--ok)';
+
+  g('h-flash').textContent = d.flash===undefined?'--':d.flash?'OK':'GREŠKA';
+  g('h-flash').style.color = d.flash===undefined?'var(--muted)':d.flash?'var(--ok)':'var(--danger)';
+
+  var modeLbl = s.probe2Mode===1?'Fermentacija':s.probe2Mode===2?'Keezer Monitor':'Ambijentalna';
+  g('h-probe2').textContent = modeLbl;
+  g('h-gapcutoff').textContent = s.gapCutoffActive?'AKTIVAN (LATCH!)':'neaktivan';
+  g('h-gapcutoff').style.color = s.gapCutoffActive?'var(--danger)':'var(--ok)';
+
+  // Sažetak
+  var issues = [];
+  if(rssi!==undefined && rssi<-80) issues.push('slab WiFi signal');
+  if(oledOk===false) issues.push('OLED prekid');
+  if(d.flash===false) issues.push('flash greška');
+  if(heapKb!==null && heapKb<50) issues.push('malo slobodne memorije');
+  if(hbAge!==null && hbAge>120) issues.push('nema javljanja >2min');
+  var summary = g('health-summary');
+  if(issues.length===0){
+    summary.textContent = '✓ Sve u redu.';
+    summary.style.color = 'var(--ok)';
+  } else {
+    summary.textContent = '⚠ Pronađeno: ' + issues.join(', ') + '.';
+    summary.style.color = 'var(--warn)';
+  }
 }
 
 
