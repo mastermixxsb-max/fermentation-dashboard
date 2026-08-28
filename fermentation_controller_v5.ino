@@ -7,10 +7,13 @@
 //        monitor), R1 gate na mod, gap-safety cutoff za keg tromost
 //  v6.1: I2C bus health check + auto-recovery za OLED (rjesava povremeni
 //        "display se ugasio, ostatak radi normalno" problem)
+//  v6.2: WiFi notifikacije prag 5min->45min (manje spama), online notif
+//        samo ako je offline prijavljen, reconnect/boot biraju NAJJACU
+//        poznatu mrezu; dnevni Pushover digest (ponoc, tiha dostava)
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v6.1"
+#define FW_VERSION "v6.2"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -109,6 +112,9 @@ bool     wifi_ok = false, flash_ok = false;
 bool     oled_ok = false;
 unsigned long lastI2cCheck = 0;
 uint8_t  i2cFailCount = 0;
+// v6.2 — dnevni digest brojaci
+uint16_t daily_wifi_reconnects = 0;
+uint16_t daily_i2c_recoveries = 0;
 
 uint32_t temp_log_head = 0, relay_log_head = 0;
 uint32_t ferm_rec_count = 0, kstat_head = 0;
@@ -502,6 +508,7 @@ bool i2c_health_check() {
 
 void i2c_bus_recover() {
   Serial.println("[I2C] Bus recovery — otpustam I2C liniju...");
+  daily_i2c_recoveries++; // v6.2 — za dnevni digest
   Wire.end();
   pinMode(OLED_SCL, OUTPUT);
   pinMode(OLED_SDA, INPUT_PULLUP);
@@ -715,17 +722,42 @@ void setup() {
   const char* known_ssids[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
   const char* known_pass    = "qHx1erkt";
   bool manual_connected = false;
-  for (int i = 0; i < 3; i++) {
-    Serial.printf("[WiFi] Pokusavam: %s\n", known_ssids[i]);
-    WiFi.begin(known_ssids[i], known_pass);
+  // v6.2 — skeniraj i spoji se na NAJJAČU poznatu mrežu, ne prvu koja radi
+  Serial.println("[WiFi] Skeniram dostupne mreze (boot)...");
+  int nBoot = WiFi.scanNetworks();
+  int bestBootIdx = -1, bestBootRssi = -1000;
+  for (int i = 0; i < nBoot; i++) {
+    for (int k = 0; k < 3; k++) {
+      if (WiFi.SSID(i) == known_ssids[k]) {
+        int rssi = WiFi.RSSI(i);
+        Serial.printf("[WiFi] Nadjeno: %s (%d dBm)\n", known_ssids[k], rssi);
+        if (rssi > bestBootRssi) { bestBootRssi = rssi; bestBootIdx = k; }
+      }
+    }
+  }
+  WiFi.scanDelete();
+  if (bestBootIdx >= 0) {
+    Serial.printf("[WiFi] Spajam na najjacu: %s (%d dBm)\n", known_ssids[bestBootIdx], bestBootRssi);
+    WiFi.begin(known_ssids[bestBootIdx], known_pass);
     int tries = 0;
-    while (WiFi.status() != WL_CONNECTED && tries < 10) { delay(500); tries++; }
+    while (WiFi.status() != WL_CONNECTED && tries < 20) { delay(500); tries++; }
     if (WiFi.status() == WL_CONNECTED) {
       manual_connected = true;
-      Serial.printf("[WiFi] Spojen na: %s\n", known_ssids[i]);
-      break;
+      Serial.printf("[WiFi] Spojen na: %s\n", known_ssids[bestBootIdx]);
     }
-    WiFi.disconnect(); delay(200);
+  } else {
+    for (int i = 0; i < 3; i++) {
+      Serial.printf("[WiFi] Fallback pokusaj: %s\n", known_ssids[i]);
+      WiFi.begin(known_ssids[i], known_pass);
+      int tries = 0;
+      while (WiFi.status() != WL_CONNECTED && tries < 10) { delay(500); tries++; }
+      if (WiFi.status() == WL_CONNECTED) {
+        manual_connected = true;
+        Serial.printf("[WiFi] Spojen na: %s\n", known_ssids[i]);
+        break;
+      }
+      WiFi.disconnect(); delay(200);
+    }
   }
 
   WiFiManager wm;
@@ -940,39 +972,41 @@ void loop() {
   static bool was_online = false;
   static unsigned long offline_since = 0;
   static unsigned long last_po_notif = 0;
+  static bool offline_notif_sent = false; // v6.2 — javi ONLINE samo ako je prije javljeno OFFLINE
   bool currently_online = (WiFi.status() == WL_CONNECTED);
 
   if (!currently_online && was_online) {
-    // Upravo izgubio vezu — zabilježi kad
     if (offline_since == 0) offline_since = now;
   }
 
   if (currently_online && !was_online) {
-    // Upravo se spojio
     offline_since = 0;
+    daily_wifi_reconnects++; // v6.2 — za dnevni digest
     Serial.println("[WiFi] Veza uspostavljena!");
     configTime(3600, 3600, "pool.ntp.org");
     ArduinoOTA.begin();
     fb_sync_settings();
-    // Pushover online — cooldown 10min
-    if ((now - last_po_notif) > 600000) {
+    // v6.2 — javi ONLINE samo ako je bio poslan OFFLINE (kratki padovi se sami saniraju)
+    if (offline_notif_sent) {
       String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
                        "\",\"title\":\"ESP ONLINE\",\"message\":\"Veza uspostavljena.\",\"priority\":0}";
       HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
       http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
       last_po_notif = now;
+      offline_notif_sent = false;
     }
   }
 
-  if (!currently_online && offline_since > 0 && (now - offline_since > 300000)) {
-    // Offline više od 5 minuta — šalji notifikaciju
-    if ((now - last_po_notif) > 600000) { // cooldown 10 minuta
-      Serial.println("[WiFi] Izgubljena veza!");
+  // v6.2 — prag podignut s 5min na 45min (kratki padovi ne trebaju notifikaciju)
+  if (!currently_online && offline_since > 0 && (now - offline_since > 2700000)) {
+    if (!offline_notif_sent) {
+      Serial.println("[WiFi] Izgubljena veza (>45min)!");
       String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
-                       "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena! Radim offline.\",\"priority\":1}";
+                       "\",\"title\":\"ESP OFFLINE\",\"message\":\"Veza izgubljena 45+ min! Radim offline.\",\"priority\":1}";
       HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
       http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
       last_po_notif = now;
+      offline_notif_sent = true;
     }
   }
 
@@ -981,14 +1015,36 @@ void loop() {
 
   if (!wifi_ok && (now - last_wifi_check > 30000)) {
     last_wifi_check = now;
-    const char* ssids[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
-    for (int i = 0; i < 3; i++) {
-      Serial.printf("[WiFi] Reconnect pokusaj: %s\n", ssids[i]);
-      WiFi.begin(ssids[i], "qHx1erkt");
+    // v6.2 — skeniraj i spoji se na NAJJAČU poznatu mrežu, ne prvu koja radi
+    const char* known[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
+    const int knownCount = 3;
+    Serial.println("[WiFi] Skeniram dostupne mreze...");
+    int n = WiFi.scanNetworks();
+    int bestIdx = -1, bestRssi = -1000;
+    for (int i = 0; i < n; i++) {
+      for (int k = 0; k < knownCount; k++) {
+        if (WiFi.SSID(i) == known[k]) {
+          int rssi = WiFi.RSSI(i);
+          Serial.printf("[WiFi] Nadjeno: %s (%d dBm)\n", known[k], rssi);
+          if (rssi > bestRssi) { bestRssi = rssi; bestIdx = k; }
+        }
+      }
+    }
+    WiFi.scanDelete();
+    if (bestIdx >= 0) {
+      Serial.printf("[WiFi] Spajam na najjacu: %s (%d dBm)\n", known[bestIdx], bestRssi);
+      WiFi.begin(known[bestIdx], "qHx1erkt");
       int tries = 0;
-      while (WiFi.status() != WL_CONNECTED && tries < 10) { delay(500); tries++; ArduinoOTA.handle(); }
-      if (WiFi.status() == WL_CONNECTED) break;
-      WiFi.disconnect(); delay(200);
+      while (WiFi.status() != WL_CONNECTED && tries < 20) { delay(500); tries++; ArduinoOTA.handle(); }
+    } else {
+      for (int i = 0; i < knownCount; i++) {
+        Serial.printf("[WiFi] Fallback pokusaj: %s\n", known[i]);
+        WiFi.begin(known[i], "qHx1erkt");
+        int tries = 0;
+        while (WiFi.status() != WL_CONNECTED && tries < 10) { delay(500); tries++; ArduinoOTA.handle(); }
+        if (WiFi.status() == WL_CONNECTED) break;
+        WiFi.disconnect(); delay(200);
+      }
     }
   }
 
@@ -1073,6 +1129,23 @@ void loop() {
   if (getLocalTime(&ti)) {
     if (ti.tm_hour==0 && ti.tm_min==0 && last_day!=ti.tm_yday) {
       last_day = ti.tm_yday;
+      // v6.2 — dnevni Pushover digest PRIJE resetiranja brojaca (keezer_stat_save resetira today_on_sec/today_cycles)
+      if (wifi_ok && strlen(po_token) > 5) {
+        float kwh = (today_on_sec/3600.0)*0.075;
+        char msg[220];
+        snprintf(msg, sizeof(msg),
+          "Keezer: %luh %lum, %u ciklusa, ~%.2f kWh. WiFi reconnect: %u. I2C recovery: %u.",
+          today_on_sec/3600, (today_on_sec%3600)/60, today_cycles, kwh,
+          daily_wifi_reconnects, daily_i2c_recoveries);
+        String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
+                         "\",\"title\":\"📊 Dnevni sažetak\",\"message\":\"" + String(msg) +
+                         "\",\"priority\":-1}"; // -1 = tiha dostava, bez zvuka/vibracije
+        HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+        http.addHeader("Content-Type","application/json"); http.POST(po_body); http.end();
+        Serial.printf("[DIGEST] %s\n", msg);
+      }
+      daily_wifi_reconnects = 0;
+      daily_i2c_recoveries = 0;
       keezer_stat_save();
     }
   }
