@@ -1,5 +1,5 @@
 {
-  "version": "v7.0",
+  "version": "v7.0-test",
   "url": "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/firmware.bin",
-  "notes": "Milestone v7.0 - sve v6.x izmjene objedinjene"
+  "notes": "Test pull-OTA mehanizma - isti kod, samo verzija bump za trigger"
 }
