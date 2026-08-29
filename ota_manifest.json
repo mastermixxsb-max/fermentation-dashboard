@@ -1,5 +1,1 @@
-{
-  "version": "v7.0-test",
-  "url": "https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/firmware.bin",
-  "notes": "Test pull-OTA mehanizma - isti kod, samo verzija bump za trigger"
-}
+{"version":"v7.0-test","url":"https://raw.githubusercontent.com/mastermixxsb-max/fermentation-dashboard/main/firmware.bin","notes":"Test pull-OTA mehanizma"}
