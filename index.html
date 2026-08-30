@@ -357,6 +357,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       </div>
     </div>
 
+    <!-- Danas (ispravno, iz Firebase relay_log — neovisno o ESP satnom brojacu) -->
+    <div class="span2" style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:10px">KEEZER DANAS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px">CIKLUSA</div>
+          <div id="today-cycles-v" style="font-size:22px;font-weight:bold;color:var(--keezer)">--</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px">RADIO</div>
+          <div id="today-on-v" style="font-size:22px;font-weight:bold;color:var(--keezer)">--</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px">kWh</div>
+          <div id="today-kwh-v" style="font-size:22px;font-weight:bold;color:var(--keezer)">--</div>
+        </div>
+      </div>
+      <div style="font-size:8px;color:var(--muted);margin-top:8px;text-align:center">Računa se iz Firebase loga, ne s fizičkog ekrana — uvijek točno bez obzira na restarte.</div>
+    </div>
+
     <!-- OLED Widget simulacija -->
     <div class="span2" style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -1076,6 +1096,7 @@ function runLogic(ts){
         // Akumuliraj za OLED stranicu 4
         window._todayOnSec = (window._todayOnSec||0) + dur;
         window._todayCycles = (window._todayCycles||0) + 1;
+        renderTodayCard();
         window._keezerOnTs=null;
       }
     }
@@ -1679,7 +1700,11 @@ async function loadTodayStatsFromFB(){
     var data = await resp.json();
     if(data && typeof data === 'object'){
       var now = Math.floor(Date.now()/1000);
-      var todayStart = now - (now % 86400); // početak dana UTC
+      // FIX: 'početak dana' po LOKALNOM (Zagreb) vremenu, ne po UTC ponoći —
+      // stari izračun (now - now%86400) koristio je UTC granicu, pa su ciklusi
+      // između 22:00-00:00 UTC (00:00-02:00 lokalno) upadali u pogrešan dan.
+      var nowD = new Date();
+      var todayStart = Math.floor(new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate(),0,0,0,0).getTime()/1000);
       var entries = Object.values(data)
         .filter(function(e){ return e.relay===2; })
         .sort(function(a,b){ return a.ts-b.ts; });
@@ -1702,8 +1727,17 @@ async function loadTodayStatsFromFB(){
       });
       window._todayOnSec = totalSec;
       window._todayCycles = cycles;
+      renderTodayCard();
     }
   } catch(e){ console.warn('today stats load error', e); }
+}
+function renderTodayCard(){
+  var elC=g('today-cycles-v'), elO=g('today-on-v'), elK=g('today-kwh-v');
+  if(!elC) return;
+  var tos=window._todayOnSec||0, tc=window._todayCycles||0;
+  elC.textContent = tc;
+  elO.textContent = Math.floor(tos/3600)+'h '+Math.floor((tos%3600)/60)+'m';
+  elK.textContent = ((tos/3600)*(compWatt/1000)).toFixed(2);
 }
 function oledDraw(){
   var canvas = g('oled-canvas'); if(!canvas) return;
