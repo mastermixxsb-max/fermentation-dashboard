@@ -120,6 +120,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .stat-v{font-size:14px;font-family:var(--head);font-weight:700}
 .log-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .log-box{height:220px;overflow-y:auto;background:#060a0f;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:9px;line-height:1.9;margin-top:8px}
+.logf-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:1px;white-space:nowrap;transition:.2s}
+.logf-chip.on{border-color:currentColor;background:rgba(255,255,255,.06)}
+.logd-hdr{font-size:8px;color:var(--muted);letter-spacing:2px;padding:10px 2px 4px;position:sticky;top:0;background:#060a0f}
+.loge-row{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-bottom:1px solid #101a26}
+.loge-row:last-child{border-bottom:none}
+.loge-ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px}
+.loge-body{flex:1;min-width:0}
+.loge-msg{font-size:11px;line-height:1.4;word-break:break-word}
+.loge-meta{font-size:8px;color:var(--muted);letter-spacing:.5px;margin-top:1px}
 .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:500px){.set-grid{grid-template-columns:1fr}}
 .set-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
@@ -447,7 +456,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <span style="font-size:9px;color:var(--muted);letter-spacing:2px" id="log-cnt">LOG</span>
       <button class="hbtn" onclick="clearLog()">Obriši</button>
     </div>
-    <div class="log-box" id="log-box"><div style="color:var(--muted)">Čekam podatke...</div></div>
+    <div style="display:flex;gap:5px;margin-top:10px;overflow-x:auto;padding-bottom:2px" id="log-filters">
+      <button class="logf-chip on" data-f="sve" style="color:var(--text)" onclick="setLogFilter('sve',this)">SVE</button>
+      <button class="logf-chip" data-f="Keezer" style="color:var(--keezer)" onclick="setLogFilter('Keezer',this)">KEEZER</button>
+      <button class="logf-chip" data-f="Ferm" style="color:var(--ferm)" onclick="setLogFilter('Ferm',this)">FERM</button>
+      <button class="logf-chip" data-f="SYS" style="color:var(--warn)" onclick="setLogFilter('SYS',this)">SUSTAV</button>
+    </div>
+    <div class="log-box" id="log-box" style="height:340px;font-size:11px;line-height:normal;padding:2px 6px"><div style="color:var(--muted);padding:10px">Čekam podatke...</div></div>
   </div>
   <div style="text-align:center;margin-top:12px">
     <button onclick="exportCSV()" style="padding:8px 20px;border-radius:20px;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.1);color:var(--ferm);font-family:var(--mono);font-size:10px;letter-spacing:2px;cursor:pointer">CSV Export</button>
@@ -2224,10 +2239,58 @@ function addLog(msg,sec,relay,color){
   if(g('pane-log').classList.contains('active')) renderLog();
   g('log-cnt').textContent='LOG ('+relayLog.length+' zapisa)';
 }
+var _logFilter='sve';
+function setLogFilter(f,btn){
+  _logFilter=f;
+  document.querySelectorAll('#log-filters .logf-chip').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  renderLog();
+}
+function logIcon(e){
+  var m=e.msg||'';
+  if(/SAFE MODE/i.test(m)) return {ic:'⚠',bg:'rgba(239,68,68,.15)',fg:'#ef4444'};
+  if(/Safe mode resetiran/i.test(m)) return {ic:'✓',bg:'rgba(34,197,94,.15)',fg:'#22c55e'};
+  if(e.relay==='R2') return {ic:'❄',bg:'rgba(0,240,160,.12)',fg:'var(--keezer)'};
+  if(e.relay==='R1') return {ic:'🔥',bg:'rgba(255,107,53,.12)',fg:'var(--heat)'};
+  if(e.relay==='PROFIL') return {ic:'📈',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
+  if(e.relay==='SESSION') return {ic:/START/i.test(m)?'▶':'⏹',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
+  if(e.relay==='MOD') return {ic:'⚙',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
+  if(e.relay==='SERIJA') return {ic:'📋',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
+  if(e.relay==='OBS') return {ic:'👁',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
+  if(e.relay==='GAP') return {ic:'⏱',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
+  if(e.relay==='SYNC') return {ic:'🔄',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
+  if(e.relay==='CMD') return {ic:'🔁',bg:'rgba(239,68,68,.12)',fg:'#ef4444'};
+  if(e.relay==='PUSH') return {ic:'🔔',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
+  return {ic:'•',bg:'rgba(61,84,112,.15)',fg:'var(--muted)'};
+}
+function logDayLabel(ts){
+  var d=new Date(ts), now=new Date();
+  var dS=d.toDateString(), nS=now.toDateString();
+  var y=new Date(now); y.setDate(y.getDate()-1);
+  if(dS===nS) return 'DANAS';
+  if(dS===y.toDateString()) return 'JUČER';
+  return d.toLocaleDateString('hr-HR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
 function renderLog(){
-  var box=g('log-box'); if(!relayLog.length){box.innerHTML='<div style="color:#3d5470">Nema zapisa</div>';return;}
-  var fmtT=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});};
-  box.innerHTML=relayLog.slice(-100).map(function(e){return '<div><span style="color:#3d5470">['+fmtT(e.ts)+']</span> <span style="color:'+e.color+'">'+e.msg+'</span></div>';}).join('');
+  var box=g('log-box');
+  var list = _logFilter==='sve' ? relayLog : relayLog.filter(function(e){return e.sec===_logFilter;});
+  if(!list.length){box.innerHTML='<div style="color:#3d5470;padding:10px">Nema zapisa</div>';return;}
+  var fmtT=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});};
+  var slice=list.slice(-150);
+  var html='', lastDay=null;
+  slice.forEach(function(e){
+    var day=logDayLabel(e.ts);
+    if(day!==lastDay){ html+='<div class="logd-hdr">'+day+'</div>'; lastDay=day; }
+    var ic=logIcon(e);
+    html+='<div class="loge-row">'+
+      '<div class="loge-ic" style="background:'+ic.bg+';color:'+ic.fg+'">'+ic.ic+'</div>'+
+      '<div class="loge-body">'+
+        '<div class="loge-msg" style="color:'+e.color+'">'+e.msg+'</div>'+
+        '<div class="loge-meta">'+fmtT(e.ts)+' · '+e.sec+'</div>'+
+      '</div>'+
+    '</div>';
+  });
+  box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
 }
 function clearLog(){ relayLog=[]; renderLog(); g('log-cnt').textContent='LOG (0 zapisa)'; }
