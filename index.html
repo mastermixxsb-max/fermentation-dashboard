@@ -122,13 +122,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .log-box{height:220px;overflow-y:auto;background:#060a0f;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:9px;line-height:1.9;margin-top:8px}
 .logf-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:1px;white-space:nowrap;transition:.2s}
 .logf-chip.on{border-color:currentColor;background:rgba(255,255,255,.06)}
-.logd-hdr{font-size:8px;color:var(--muted);letter-spacing:2px;padding:10px 2px 4px;position:sticky;top:0;background:#060a0f}
-.loge-row{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-bottom:1px solid #101a26}
-.loge-row:last-child{border-bottom:none}
-.loge-ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px}
-.loge-body{flex:1;min-width:0}
-.loge-msg{font-size:11px;line-height:1.4;word-break:break-word}
-.loge-meta{font-size:8px;color:var(--muted);letter-spacing:.5px;margin-top:1px}
+.logd-hdr{font-size:8px;color:var(--muted);letter-spacing:2px;padding:8px 2px 3px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.loge-row{display:grid;grid-template-columns:52px 3px 1fr;column-gap:8px;align-items:baseline;padding:2.5px 4px;font-family:var(--mono);font-size:9.5px;line-height:1.5;border-radius:3px}
+.loge-row:hover{background:#0a1219}
+.loge-t{color:var(--muted);white-space:nowrap}
+.loge-bar{align-self:stretch;border-radius:2px;min-height:12px}
+.loge-msg{word-break:break-word}
+.loge-sec{color:var(--muted);font-size:8px;margin-left:5px}
 .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:500px){.set-grid{grid-template-columns:1fr}}
 .set-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
@@ -2246,22 +2246,16 @@ function setLogFilter(f,btn){
   btn.classList.add('on');
   renderLog();
 }
-function logIcon(e){
+function logAccent(e){
   var m=e.msg||'';
-  if(/SAFE MODE/i.test(m)) return {ic:'⚠',bg:'rgba(239,68,68,.15)',fg:'#ef4444'};
-  if(/Safe mode resetiran/i.test(m)) return {ic:'✓',bg:'rgba(34,197,94,.15)',fg:'#22c55e'};
-  if(e.relay==='R2') return {ic:'❄',bg:'rgba(0,240,160,.12)',fg:'var(--keezer)'};
-  if(e.relay==='R1') return {ic:'🔥',bg:'rgba(255,107,53,.12)',fg:'var(--heat)'};
-  if(e.relay==='PROFIL') return {ic:'📈',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
-  if(e.relay==='SESSION') return {ic:/START/i.test(m)?'▶':'⏹',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
-  if(e.relay==='MOD') return {ic:'⚙',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
-  if(e.relay==='SERIJA') return {ic:'📋',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
-  if(e.relay==='OBS') return {ic:'👁',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
-  if(e.relay==='GAP') return {ic:'⏱',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
-  if(e.relay==='SYNC') return {ic:'🔄',bg:'rgba(0,212,255,.12)',fg:'var(--ferm)'};
-  if(e.relay==='CMD') return {ic:'🔁',bg:'rgba(239,68,68,.12)',fg:'#ef4444'};
-  if(e.relay==='PUSH') return {ic:'🔔',bg:'rgba(245,158,11,.12)',fg:'var(--warn)'};
-  return {ic:'•',bg:'rgba(61,84,112,.15)',fg:'var(--muted)'};
+  if(/SAFE MODE/i.test(m)) return '#ef4444';
+  if(/Safe mode resetiran/i.test(m)) return '#22c55e';
+  if(e.relay==='R2') return 'var(--keezer)';
+  if(e.relay==='R1') return 'var(--heat)';
+  if(e.relay==='CMD') return '#ef4444';
+  if(e.relay==='OBS'||e.relay==='GAP'||e.relay==='PUSH') return 'var(--warn)';
+  if(['PROFIL','SESSION','MOD','SERIJA','SYNC'].indexOf(e.relay)>-1) return 'var(--ferm)';
+  return 'var(--muted)';
 }
 function logDayLabel(ts){
   var d=new Date(ts), now=new Date();
@@ -2275,19 +2269,17 @@ function renderLog(){
   var box=g('log-box');
   var list = _logFilter==='sve' ? relayLog : relayLog.filter(function(e){return e.sec===_logFilter;});
   if(!list.length){box.innerHTML='<div style="color:#3d5470;padding:10px">Nema zapisa</div>';return;}
-  var fmtT=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});};
+  var fmtT=function(ts){return new Date(ts).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});};
   var slice=list.slice(-150);
   var html='', lastDay=null;
   slice.forEach(function(e){
     var day=logDayLabel(e.ts);
     if(day!==lastDay){ html+='<div class="logd-hdr">'+day+'</div>'; lastDay=day; }
-    var ic=logIcon(e);
+    var accent=logAccent(e);
     html+='<div class="loge-row">'+
-      '<div class="loge-ic" style="background:'+ic.bg+';color:'+ic.fg+'">'+ic.ic+'</div>'+
-      '<div class="loge-body">'+
-        '<div class="loge-msg" style="color:'+e.color+'">'+e.msg+'</div>'+
-        '<div class="loge-meta">'+fmtT(e.ts)+' · '+e.sec+'</div>'+
-      '</div>'+
+      '<span class="loge-t">'+fmtT(e.ts)+'</span>'+
+      '<span class="loge-bar" style="background:'+accent+'"></span>'+
+      '<span class="loge-msg" style="color:'+e.color+'">'+e.msg+'<span class="loge-sec">'+e.sec+'</span></span>'+
     '</div>';
   });
   box.innerHTML=html;
