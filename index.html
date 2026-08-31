@@ -146,6 +146,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:2px}
 .bar{width:100%;border-radius:2px 2px 0 0;transition:height .3s;min-height:2px}
 .bar-lbl{font-size:7px;color:var(--muted)}
+.gauge-hero{background:radial-gradient(ellipse at 50% 30%,#0f1c28,var(--panel) 70%);border:1px solid var(--border);border-radius:16px;padding:18px 14px 14px;margin-bottom:12px;text-align:center;overflow:hidden}
+.gauge-stage{position:relative;width:100%;max-width:220px;margin:0 auto;opacity:0;transform:scale(.92);animation:gaugeIn .6s cubic-bezier(.2,.8,.2,1) .05s forwards}
+@keyframes gaugeIn{to{opacity:1;transform:scale(1)}}
+.gauge-readout{position:absolute;left:0;right:0;top:26px;display:flex;flex-direction:column;align-items:center}
+.gauge-num{font-size:38px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums}
+.gauge-unit{font-size:16px;color:var(--muted);font-weight:600}
+.gauge-lbl{font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:4px}
+.gstat-row{display:flex;justify-content:center;gap:22px;margin-top:6px;flex-wrap:wrap}
+.gstat{text-align:center}
+.gstat-v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.gstat-l{font-size:8px;color:var(--muted);letter-spacing:1.5px;margin-top:2px}
 /* kW section */
 .kw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .kw-card{background:var(--panel);border-radius:10px;padding:10px 12px;text-align:center;border:1px solid rgba(0,240,160,.2)}
@@ -476,12 +487,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <button id="ana-tjedan" class="tbtn" style="flex:1" onclick="setAnaPeriod('tjedan',this)">TJEDAN</button>
     <button id="ana-mjesec" class="tbtn" style="flex:1" onclick="setAnaPeriod('mjesec',this)">MJESEC</button>
   </div>
-  <!-- Keezer ciklusi -->
-  <div class="ana-grid">
-    <div class="kpi"><div class="kpi-l">CIKLUSA</div><div class="kpi-v" id="ana-total" style="color:var(--keezer)">-</div></div>
-    <div class="kpi"><div class="kpi-l">PROSJEK</div><div class="kpi-v" id="ana-avg" style="color:var(--cool)">-</div></div>
-    <div class="kpi"><div class="kpi-l">NAJDUŽI</div><div class="kpi-v" id="ana-max" style="color:var(--ferm)">-</div></div>
-    <div class="kpi"><div class="kpi-l">DUTY %</div><div class="kpi-v" id="ana-duty" style="color:var(--warn)">-</div></div>
+  <!-- Hero gauge: Duty % kao analogni manometar -->
+  <div class="gauge-hero">
+    <div class="gauge-stage" id="gauge-stage">
+      <div id="gauge-svg-wrap"></div>
+      <div class="gauge-readout">
+        <div class="gauge-num"><span id="gauge-val">--</span><span class="gauge-unit">%</span></div>
+        <div class="gauge-lbl" id="gauge-lbl">ISKORIŠTENOST · DANAS</div>
+      </div>
+    </div>
+    <div class="gstat-row">
+      <div class="gstat"><div class="gstat-v" id="ana-total" style="color:var(--keezer)">-</div><div class="gstat-l">CIKLUSA</div></div>
+      <div class="gstat"><div class="gstat-v" id="ana-avg" style="color:var(--cool)">-</div><div class="gstat-l">PROSJEK</div></div>
+      <div class="gstat"><div class="gstat-v" id="ana-max" style="color:var(--ferm)">-</div><div class="gstat-l">NAJDULJI</div></div>
+    </div>
   </div>
   <!-- kW potrošnja -->
   <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
@@ -503,6 +522,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <div class="chart-wrap">
     <div class="chart-title">UKLJUČIVANJA KEEZERA</div>
     <div class="bar-chart" id="ana-bars"></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">POTROŠNJA (kWh)</div>
+    <div class="bar-chart" id="kwh-bars"></div>
   </div>
   <div class="log-wrap" style="margin-top:10px">
     <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">ZADNJIH 10 CIKLUSA</div>
@@ -2149,6 +2172,53 @@ async function loadCyclesFromFB(){
 }
 
 // ── Analytics ────────────────────────────────────────────────────
+// ── Gauge (analogni manometar stil) ─────────────────────────────
+function polarToXY(cx,cy,r,angleDeg){
+  var rad=(angleDeg-90)*Math.PI/180;
+  return {x:cx+r*Math.cos(rad), y:cy+r*Math.sin(rad)};
+}
+function describeArc(cx,cy,r,startAngle,endAngle){
+  var start=polarToXY(cx,cy,r,endAngle);
+  var end=polarToXY(cx,cy,r,startAngle);
+  var largeArc = (endAngle-startAngle)<=180 ? "0":"1";
+  return ["M",start.x,start.y,"A",r,r,0,largeArc,0,end.x,end.y].join(" ");
+}
+var _gaugeGid = 'gg'+Math.random().toString(36).slice(2,8);
+function renderGauge(pct){
+  pct = Math.max(0,Math.min(100,pct||0));
+  var cx=120, cy=120, r=92;
+  var startA=-220, endA=40, sweep=endA-startA; // 260° sweep, 100° otvor dolje
+  var valA = startA + sweep*pct/100;
+  var trackPath = describeArc(cx,cy,r,startA,endA);
+  var progPath = pct>=1 ? describeArc(cx,cy,r,startA,valA) : "";
+  var ticks='';
+  [0,25,50,75,100].forEach(function(t){
+    var a=startA+sweep*t/100;
+    var p1=polarToXY(cx,cy,r+11,a), p2=polarToXY(cx,cy,r+19,a);
+    ticks+='<line x1="'+p1.x.toFixed(1)+'" y1="'+p1.y.toFixed(1)+'" x2="'+p2.x.toFixed(1)+'" y2="'+p2.y.toFixed(1)+'" stroke="#1c2c3d" stroke-width="2" stroke-linecap="round"/>';
+  });
+  var svg='<svg viewBox="0 0 240 240" style="width:100%;display:block;overflow:visible">'+
+    '<defs>'+
+      '<linearGradient id="'+_gaugeGid+'" x1="0%" y1="100%" x2="100%" y2="0%">'+
+        '<stop offset="0%" stop-color="var(--keezer)"/><stop offset="100%" stop-color="var(--ferm)"/>'+
+      '</linearGradient>'+
+      '<filter id="'+_gaugeGid+'f" x="-80%" y="-80%" width="260%" height="260%">'+
+        '<feGaussianBlur stdDeviation="5.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'+
+      '</filter>'+
+    '</defs>'+
+    ticks+
+    '<path d="'+trackPath+'" fill="none" stroke="#101b27" stroke-width="15" stroke-linecap="round"/>'+
+    (progPath?'<path d="'+progPath+'" fill="none" stroke="url(#'+_gaugeGid+')" stroke-width="15" stroke-linecap="round" filter="url(#'+_gaugeGid+'f)"/>':'')+
+  '</svg>';
+  g('gauge-svg-wrap').innerHTML=svg;
+  g('gauge-val').textContent=pct.toFixed(0);
+  var lbl = anaPeriod==='dan'?'DANAS':anaPeriod==='tjedan'?'TJEDAN':'MJESEC';
+  g('gauge-lbl').textContent='ISKORIŠTENOST · '+lbl;
+  // re-trigger ulazna animacija stagea pri promjeni perioda
+  var stage=g('gauge-stage');
+  stage.style.animation='none'; void stage.offsetWidth; stage.style.animation='';
+}
+
 function setAnaPeriod(p,btn){
   anaPeriod=p;
   document.querySelectorAll('#pane-ana .tbtn').forEach(function(b){b.className='tbtn';b.style.color='';});
@@ -2175,7 +2245,7 @@ function updateAna(){
   g('ana-total').textContent=total||'-';
   g('ana-avg').textContent=avgDur?fmtDur(avgDur):'-';
   g('ana-max').textContent=maxDur?fmtDur(maxDur):'-';
-  g('ana-duty').textContent=duty?duty+'%':'-';
+  renderGauge(duty);
 
   // kW računanje
   var kwhFactor = compWatt / 1000; // kW po sati rada
@@ -2217,6 +2287,22 @@ function updateAna(){
   bars.innerHTML=buckets.map(function(cnt,i){
     var pct=Math.max(cnt>0?8:2,(cnt/maxB)*88);
     return '<div class="bar-wrap"><div class="bar" style="height:'+pct+'%;background:'+(cnt>0?'#00f0a099':'#172130')+'"></div><div class="bar-lbl">'+labels[i]+'</div></div>';
+  }).join('');
+
+  // kWh po istim bucketima (dan/tjedan/mjesec) — 'iznenadi me' graf potrošnje
+  var kwhBuckets=Array(buckets.length).fill(0);
+  timedCycles.forEach(function(c){
+    var idx;
+    if(anaPeriod==='dan') idx=new Date(c.onTs).getHours();
+    else if(anaPeriod==='tjedan') idx=(new Date(c.onTs).getDay()+6)%7;
+    else idx=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));
+    kwhBuckets[idx]+=(c.sec/3600)*kwhFactor;
+  });
+  var maxKwh=Math.max(0.01,Math.max.apply(null,kwhBuckets));
+  var kwhBars=g('kwh-bars');
+  kwhBars.innerHTML=kwhBuckets.map(function(v,i){
+    var pct=Math.max(v>0?8:2,(v/maxKwh)*88);
+    return '<div class="bar-wrap"><div class="bar" style="height:'+pct+'%;background:'+(v>0?'#00d4ff99':'#172130')+'" title="'+v.toFixed(2)+' kWh"></div><div class="bar-lbl">'+labels[i]+'</div></div>';
   }).join('');
 
   var clog=g('cycle-log');
