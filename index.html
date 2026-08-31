@@ -152,6 +152,49 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .kw-l{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
 .kw-v{font-size:18px;font-family:var(--head);font-weight:700;color:var(--keezer)}
 .kw-u{font-size:9px;color:var(--muted)}
+/* ── Analitika v2: hero kartice + donut + area chart ─────────── */
+.hero-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.hero-card{border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;min-height:92px}
+.hero-card.c1{background:linear-gradient(135deg,#0a4d3e,#083a5c 130%)}
+.hero-card.c2{background:linear-gradient(135deg,#0a3a5c,#3a1a5c 130%)}
+.hero-l{font-size:9px;color:rgba(255,255,255,.6);letter-spacing:1.5px;margin-bottom:6px}
+.hero-v{font-size:28px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+.hero-u{font-size:13px;font-weight:600;color:rgba(255,255,255,.55);margin-left:2px}
+.hero-trend{font-size:10px;margin-top:7px;display:flex;align-items:center;gap:4px;font-weight:600}
+.hero-spark{position:absolute;right:10px;bottom:8px;left:10px;height:26px;display:flex;align-items:flex-end;gap:2px;opacity:.55}
+.hero-spark div{flex:1;background:rgba(255,255,255,.9);border-radius:1px 1px 0 0;min-height:2px}
+
+.donut-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:16px}
+.donut-stage{width:104px;height:104px;flex-shrink:0;position:relative}
+.donut-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-num b{font-size:22px;color:var(--text);line-height:1}
+.donut-num span{font-size:8px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:8px}
+.dleg-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.dleg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dleg-lbl{color:var(--muted);flex:1}
+.dleg-val{font-weight:700;font-variant-numeric:tabular-nums}
+
+.trend-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px 14px 6px;margin-bottom:10px}
+.trend-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.trend-title{font-size:10px;color:var(--muted);letter-spacing:1.5px}
+.trend-total{font-size:15px;font-weight:700;color:var(--ferm)}
+.trend-svg-wrap{position:relative}
+.trend-callout{position:absolute;background:var(--ferm);color:#001018;font-size:9px;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-130%);pointer-events:none}
+.trend-callout:after{content:'';position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--ferm)}
+.trend-xlabels{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:2px;padding:0 2px}
+
+.bars2-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px}
+.bars2-hdr{font-size:10px;color:var(--muted);letter-spacing:1.5px;margin-bottom:10px}
+.bars2-chart{display:flex;align-items:flex-end;gap:4px;height:90px;position:relative}
+.bars2-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:4px;position:relative}
+.bars2-bar{width:100%;border-radius:4px 4px 2px 2px;transition:height .35s cubic-bezier(.2,.8,.2,1);min-height:3px}
+.bars2-lbl{font-size:8px;color:#8ba3bd}
+/* ── Log v2: stats strip ──────────────────────────────────────── */
+.logstat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.logstat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+.logstat-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.logstat-l{font-size:8px;color:var(--muted);letter-spacing:1.5px;margin-top:3px}
 /* SERIJA */
 .serija-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
 .profile-step{display:grid;grid-template-columns:60px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#060b11}
@@ -451,6 +494,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
 <!-- LOG -->
 <div id="pane-log" class="pane">
+  <div class="logstat-row" id="log-stat-row">
+    <div class="logstat"><div class="logstat-v" id="ls-keezer" style="color:var(--keezer)">-</div><div class="logstat-l">KEEZER DANAS</div></div>
+    <div class="logstat"><div class="logstat-v" id="ls-ferm" style="color:var(--ferm)">-</div><div class="logstat-l">FERM DANAS</div></div>
+    <div class="logstat"><div class="logstat-v" id="ls-sys" style="color:var(--warn)">-</div><div class="logstat-l">SUSTAV DANAS</div></div>
+  </div>
   <div class="log-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:9px;color:var(--muted);letter-spacing:2px" id="log-cnt">LOG</span>
@@ -476,13 +524,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <button id="ana-tjedan" class="tbtn" style="flex:1" onclick="setAnaPeriod('tjedan',this)">TJEDAN</button>
     <button id="ana-mjesec" class="tbtn" style="flex:1" onclick="setAnaPeriod('mjesec',this)">MJESEC</button>
   </div>
-  <!-- Keezer ciklusi -->
-  <div class="ana-grid">
-    <div class="kpi"><div class="kpi-l">CIKLUSA</div><div class="kpi-v" id="ana-total" style="color:var(--keezer)">-</div></div>
-    <div class="kpi"><div class="kpi-l">PROSJEK</div><div class="kpi-v" id="ana-avg" style="color:var(--cool)">-</div></div>
-    <div class="kpi"><div class="kpi-l">NAJDUŽI</div><div class="kpi-v" id="ana-max" style="color:var(--ferm)">-</div></div>
-    <div class="kpi"><div class="kpi-l">DUTY %</div><div class="kpi-v" id="ana-duty" style="color:var(--warn)">-</div></div>
+
+  <!-- Hero gradient kartice -->
+  <div class="hero-row">
+    <div class="hero-card c1">
+      <div class="hero-l">CIKLUSA</div>
+      <div class="hero-v" id="ana-total">-</div>
+      <div class="hero-trend" id="ana-total-trend"></div>
+      <div class="hero-spark" id="ana-total-spark"></div>
+    </div>
+    <div class="hero-card c2">
+      <div class="hero-l">PROSJEK TRAJANJA</div>
+      <div class="hero-v" id="ana-avg" style="font-size:22px">-</div>
+      <div class="hero-trend" id="ana-avg-trend">Najduži: <span id="ana-max" style="color:#fff;font-weight:700;margin-left:3px">-</span></div>
+    </div>
   </div>
+
+  <!-- Duty donut -->
+  <div class="donut-card">
+    <div class="donut-stage" id="duty-donut-wrap">
+      <div id="duty-donut-svg"></div>
+      <div class="donut-num"><b id="ana-duty">-</b><span>DUTY</span></div>
+    </div>
+    <div class="donut-legend">
+      <div class="dleg-row"><span class="dleg-dot" style="background:var(--keezer)"></span><span class="dleg-lbl">Aktivan (kompresor radi)</span><span class="dleg-val" id="duty-active-lbl" style="color:var(--keezer)">-</span></div>
+      <div class="dleg-row"><span class="dleg-dot" style="background:#172130"></span><span class="dleg-lbl">Mirovanje</span><span class="dleg-val" id="duty-idle-lbl" style="color:var(--muted)">-</span></div>
+    </div>
+  </div>
+
   <!-- kW potrošnja -->
   <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
     <span>POTROŠNJA KEEZERA (Gorenje FH301CW ~75W)</span>
@@ -500,10 +569,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
   <div style="font-size:11px;color:#8ba3bd;margin-bottom:10px;padding:8px 10px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">
     Cijena (~0.12€/kWh): Danas <span id="eur-dan" style="color:var(--keezer)">-</span> € · Tjedan <span id="eur-tjedan" style="color:var(--keezer)">-</span> € · Mjesec <span id="eur-mjesec" style="color:var(--keezer)">-</span> €
   </div>
-  <div class="chart-wrap">
-    <div class="chart-title">UKLJUČIVANJA KEEZERA</div>
-    <div class="bar-chart" id="ana-bars"></div>
+
+  <!-- Trend graf potrošnje (area/line, gradient ispuna) -->
+  <div class="trend-card">
+    <div class="trend-hdr">
+      <span class="trend-title">POTROŠNJA (kWh)</span>
+      <span class="trend-total" id="trend-total-lbl">-</span>
+    </div>
+    <div class="trend-svg-wrap" id="trend-svg-wrap"></div>
+    <div class="trend-xlabels" id="trend-xlabels"></div>
   </div>
+
+  <!-- Bar chart uključivanja s max-callout -->
+  <div class="bars2-card">
+    <div class="bars2-hdr">UKLJUČIVANJA KEEZERA</div>
+    <div class="bars2-chart" id="ana-bars"></div>
+  </div>
+
   <div class="log-wrap" style="margin-top:10px">
     <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">ZADNJIH 10 CIKLUSA</div>
     <div class="log-box" id="cycle-log" style="height:160px"></div>
@@ -2105,8 +2187,9 @@ async function loadRelayLogFromFB(){
         if(e.ts < REAL_TS_MIN) return; // stari uptime-format zapis prije fixa, preskoči (nepouzdano vrijeme)
         var color = e.relay===1 ? '#FF6B35' : '#00f0a0';
         var relayName = e.relay===1 ? 'Grijanje' : 'Keezer';
+        var secTag = e.relay===1 ? 'Ferm' : 'Keezer'; // v7.1: kategorija za filter/statistiku - 'Grijanje' ostaje samo u tekstu poruke
         var msg = relayName+' '+(e.state?'ON':'OFF');
-        relayLog.push({ts: e.ts*1000, msg: msg, sec: relayName, relay:'R'+e.relay, color: color});
+        relayLog.push({ts: e.ts*1000, msg: msg, sec: secTag, relay:'R'+e.relay, color: color});
       });
       relayLog.sort(function(a,b){return a.ts-b.ts;});
       if(relayLog.length>500) relayLog=relayLog.slice(-500);
@@ -2155,6 +2238,74 @@ function setAnaPeriod(p,btn){
   btn.className='tbtn on'; btn.style.color='#00f0a0';
   updateAna();
 }
+// ── Analitika v2: pomoćni renderi (donut, sparkline, trend, bars) ──
+function renderDutyDonut(pct, activeSec, totalSec){
+  pct=Math.max(0,Math.min(100,pct||0));
+  var r=44, C=2*Math.PI*r, dash=C*pct/100;
+  var svg='<svg viewBox="0 0 104 104" style="width:100%;height:100%;transform:rotate(-90deg);display:block">'+
+    '<defs><linearGradient id="dgrad" x1="0%" y1="0%" x2="100%" y2="100%">'+
+      '<stop offset="0%" stop-color="var(--keezer)"/><stop offset="100%" stop-color="var(--ferm)"/>'+
+    '</linearGradient></defs>'+
+    '<circle cx="52" cy="52" r="'+r+'" fill="none" stroke="#141f2c" stroke-width="12"/>'+
+    '<circle cx="52" cy="52" r="'+r+'" fill="none" stroke="url(#dgrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+dash.toFixed(1)+' '+C.toFixed(1)+'"/>'+
+  '</svg>';
+  var wrap=g('duty-donut-svg'); if(wrap) wrap.innerHTML=svg;
+  var dl=g('duty-active-lbl'), il=g('duty-idle-lbl');
+  if(dl) dl.textContent=fmtDur(Math.round(activeSec||0));
+  if(il) il.textContent=fmtDur(Math.max(0,Math.round((totalSec||0)-(activeSec||0))));
+}
+function renderHeroSpark(buckets){
+  var el=g('ana-total-spark'); if(!el) return;
+  var maxB=Math.max(1,Math.max.apply(null,buckets));
+  el.innerHTML=buckets.map(function(v){
+    var h=Math.max(v>0?18:4,(v/maxB)*100);
+    return '<div style="height:'+h+'%"></div>';
+  }).join('');
+}
+function renderBars2(buckets, labels){
+  var maxB=Math.max(1,Math.max.apply(null,buckets));
+  var maxIdx=buckets.indexOf(maxB);
+  var bars=g('ana-bars'); if(!bars) return;
+  bars.innerHTML=buckets.map(function(cnt,i){
+    var pct=Math.max(cnt>0?8:2,(cnt/maxB)*84);
+    var isMax = cnt>0 && i===maxIdx;
+    var callout = isMax ? '<div class="trend-callout" style="left:50%;top:0">'+cnt+'×</div>' : '';
+    var bg = cnt>0 ? (isMax?'linear-gradient(180deg,var(--ferm),var(--keezer))':'#00f0a066') : '#172130';
+    return '<div class="bars2-wrap">'+callout+'<div class="bars2-bar" style="height:'+pct+'%;background:'+bg+'"></div><div class="bars2-lbl">'+labels[i]+'</div></div>';
+  }).join('');
+}
+function renderTrendChart(vals, labels){
+  var wrap=g('trend-svg-wrap'); if(!wrap) return;
+  var W=300, H=90, pad=6;
+  var maxV=Math.max(0.01, Math.max.apply(null,vals));
+  var n=vals.length;
+  var stepX = n>1 ? (W-2*pad)/(n-1) : 0;
+  var pts = vals.map(function(v,i){
+    var x = pad + i*stepX;
+    var y = H - pad - (v/maxV)*(H-2*pad);
+    return [x,y];
+  });
+  var linePath = pts.map(function(p,i){return (i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  var areaPath = linePath + ' L'+pts[pts.length-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
+  var maxIdx=vals.indexOf(Math.max.apply(null,vals));
+  var maxPt=pts[maxIdx];
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible">'+
+    '<defs><linearGradient id="tgrad" x1="0%" y1="0%" x2="0%" y2="100%">'+
+      '<stop offset="0%" stop-color="var(--ferm)" stop-opacity="0.35"/><stop offset="100%" stop-color="var(--ferm)" stop-opacity="0"/>'+
+    '</linearGradient></defs>'+
+    '<path d="'+areaPath+'" fill="url(#tgrad)" stroke="none"/>'+
+    '<path d="'+linePath+'" fill="none" stroke="var(--ferm)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    (maxV>0.01?'<circle cx="'+maxPt[0].toFixed(1)+'" cy="'+maxPt[1].toFixed(1)+'" r="3" fill="var(--ferm)"/>':'')+
+  '</svg>';
+  wrap.innerHTML = svg;
+  if(maxV>0.02){
+    var pctX = (maxPt[0]/W*100).toFixed(1), pctY=(maxPt[1]/H*100).toFixed(1);
+    wrap.innerHTML += '<div class="trend-callout" style="left:'+pctX+'%;top:'+pctY+'%">'+vals[maxIdx].toFixed(2)+' kWh</div>';
+  }
+  var xl=g('trend-xlabels'); if(xl) xl.innerHTML=labels.map(function(l){return '<span>'+l+'</span>';}).join('');
+  var tot=g('trend-total-lbl'); if(tot) tot.textContent=vals.reduce(function(a,b){return a+b;},0).toFixed(2)+' kWh';
+}
+
 function updateAna(){
   var now=Date.now();
   var nowD=new Date(now);
@@ -2176,6 +2327,9 @@ function updateAna(){
   g('ana-avg').textContent=avgDur?fmtDur(avgDur):'-';
   g('ana-max').textContent=maxDur?fmtDur(maxDur):'-';
   g('ana-duty').textContent=duty?duty+'%':'-';
+  var periodLbl=anaPeriod==='dan'?'danas':anaPeriod==='tjedan'?'ovaj tjedan':'ovaj mjesec';
+  var trendEl=g('ana-total-trend'); if(trendEl) trendEl.textContent='Ukupno '+periodLbl;
+  renderDutyDonut(duty, totalOn, Math.max(totalOn,periodSec[anaPeriod]));
 
   // kW računanje
   var kwhFactor = compWatt / 1000; // kW po sati rada
@@ -2212,12 +2366,20 @@ function updateAna(){
     buckets=Array(5).fill(0); labels=['Tj1','Tj2','Tj3','Tj4','Tj5'];
     timedCycles.forEach(function(c){var w=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));buckets[w]++;});
   }
-  var maxB=Math.max(1,Math.max.apply(null,buckets));
-  var bars=g('ana-bars');
-  bars.innerHTML=buckets.map(function(cnt,i){
-    var pct=Math.max(cnt>0?8:2,(cnt/maxB)*88);
-    return '<div class="bar-wrap"><div class="bar" style="height:'+pct+'%;background:'+(cnt>0?'#00f0a099':'#172130')+'"></div><div class="bar-lbl">'+labels[i]+'</div></div>';
-  }).join('');
+
+  renderHeroSpark(buckets);
+  renderBars2(buckets, labels);
+
+  // kWh po istim bucketima — trend area chart
+  var kwhBuckets=Array(buckets.length).fill(0);
+  timedCycles.forEach(function(c){
+    var idx;
+    if(anaPeriod==='dan') idx=new Date(c.onTs).getHours();
+    else if(anaPeriod==='tjedan') idx=(new Date(c.onTs).getDay()+6)%7;
+    else idx=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));
+    kwhBuckets[idx]+=(c.sec/3600)*kwhFactor;
+  });
+  renderTrendChart(kwhBuckets, labels);
 
   var clog=g('cycle-log');
   if(!filtered.length){clog.innerHTML='<div style="color:#3d5470">Nema ciklusa</div>';return;}
@@ -2293,7 +2455,22 @@ function renderLog(){
   box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
 }
-function clearLog(){ relayLog=[]; renderLog(); g('log-cnt').textContent='LOG (0 zapisa)'; }
+function clearLog(){ relayLog=[]; renderLog(); renderLogStats(); g('log-cnt').textContent='LOG (0 zapisa)'; }
+function renderLogStats(){
+  var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  var t0 = todayStart.getTime();
+  var kz=0, fm=0, sy=0;
+  relayLog.forEach(function(e){
+    if(e.ts<t0) return;
+    if(e.sec==='Keezer') kz++;
+    else if(e.sec==='Ferm') fm++;
+    else if(e.sec==='SYS') sy++;
+  });
+  var lsK=g('ls-keezer'), lsF=g('ls-ferm'), lsS=g('ls-sys');
+  if(lsK) lsK.textContent=kz;
+  if(lsF) lsF.textContent=fm;
+  if(lsS) lsS.textContent=sy;
+}
 
 // ── CSV Export ───────────────────────────────────────────────────
 function exportCSV(){
@@ -2319,7 +2496,7 @@ function switchTab(name,btn){
   g('pane-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='chart') setTimeout(drawMainChart,60);
-  if(name==='log') renderLog();
+  if(name==='log'){ renderLog(); renderLogStats(); }
   if(name==='ana') updateAna();
   if(name==='health') refreshHealth();
 }
