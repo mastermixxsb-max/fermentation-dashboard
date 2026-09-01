@@ -2299,8 +2299,8 @@ function renderBars2(buckets, labels){
     var isMax = cnt>0 && i===maxIdx;
     var val = cnt>0 ? '<div class="bars2-val" style="color:'+(isMax?'var(--ferm)':'#c8d6e5')+'">'+cnt+'</div>' : '';
     var dividers='';
-    if(cnt>1){
-      // tanka linija na granici svakog ciklusa unutar iste trake, preko kontinuiranog fade gradijenta
+    if(cnt>1 && cnt<=12){
+      // tanka linija na granici svakog ciklusa unutar iste trake — samo dok je broj čitljiv, inače izgleda kao roletne
       for(var s=1;s<cnt;s++){
         var pos=(s/cnt*100).toFixed(1);
         dividers += '<div style="position:absolute;left:0;right:0;bottom:'+pos+'%;height:1px;background:#060a0f"></div>';
@@ -2414,7 +2414,14 @@ function updateAna(){
     else idx=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));
     kwhBuckets[idx]+=(c.sec/3600)*kwhFactor;
   });
-  renderTrendChart(kwhBuckets, labels);
+  // Prikaži samo do trenutnog dana/sata/tjedna — budući periodi su uvijek 0 i lažno izgledaju kao "pad"
+  var curIdx;
+  if(anaPeriod==='dan') curIdx=nowD.getHours();
+  else if(anaPeriod==='tjedan') curIdx=(nowD.getDay()+6)%7;
+  else curIdx=Math.min(4,Math.floor((nowD.getDate()-1)/7));
+  var kwhBucketsActive = kwhBuckets.slice(0, curIdx+1);
+  var labelsActive = labels.slice(0, curIdx+1);
+  renderTrendChart(kwhBucketsActive, labelsActive);
 
   var clog=g('cycle-log');
   if(!filtered.length){clog.innerHTML='<div style="color:#3d5470">Nema ciklusa</div>';return;}
