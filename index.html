@@ -530,8 +530,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
     <div class="hero-card c1">
       <div class="hero-l">CIKLUSA</div>
       <div class="hero-v" id="ana-total">-</div>
-      <div class="hero-trend" id="ana-total-trend"></div>
-      <div style="position:absolute;left:16px;right:16px;bottom:12px;font-size:10px;color:rgba(255,255,255,.65)" id="ana-total-peak"></div>
+      <div style="margin-top:9px;font-size:10px;color:rgba(255,255,255,.65)" id="ana-total-peak"></div>
     </div>
     <div class="hero-card c2">
       <div class="hero-l">PROSJEK TRAJANJA</div>
@@ -2332,8 +2331,6 @@ function updateAna(){
   g('ana-avg').textContent=avgDur?fmtDur(avgDur):'-';
   g('ana-max').textContent=maxDur?fmtDur(maxDur):'-';
   g('ana-duty').textContent=duty?duty+'%':'-';
-  var periodLbl=anaPeriod==='dan'?'danas':anaPeriod==='tjedan'?'ovaj tjedan':'ovaj mjesec';
-  var trendEl=g('ana-total-trend'); if(trendEl) trendEl.textContent='Ukupno '+periodLbl;
   renderDutyDonut(duty, totalOn, Math.max(totalOn,periodSec[anaPeriod]));
 
   // kW računanje
