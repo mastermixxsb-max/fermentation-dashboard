@@ -160,7 +160,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .hero-l{font-size:9px;color:rgba(255,255,255,.6);letter-spacing:1.5px;margin-bottom:6px}
 .hero-v{font-size:28px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
 .hero-u{font-size:13px;font-weight:600;color:rgba(255,255,255,.55);margin-left:2px}
-.hero-trend{position:absolute;top:14px;right:16px;font-size:9px;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.3px}
+.hero-trend{font-size:10px;margin-top:7px;display:flex;align-items:center;gap:4px;font-weight:600}
 .hero-spark{position:absolute;right:10px;bottom:8px;left:10px;height:26px;display:flex;align-items:flex-end;gap:2px;opacity:.55}
 .hero-spark div{flex:1;background:rgba(255,255,255,.9);border-radius:1px 1px 0 0;min-height:2px}
 
@@ -531,7 +531,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <div class="hero-l">CIKLUSA</div>
       <div class="hero-v" id="ana-total">-</div>
       <div class="hero-trend" id="ana-total-trend"></div>
-      <div class="hero-spark" id="ana-total-spark"></div>
+      <div style="position:absolute;left:16px;right:16px;bottom:12px;font-size:10px;color:rgba(255,255,255,.65)" id="ana-total-peak"></div>
     </div>
     <div class="hero-card c2">
       <div class="hero-l">PROSJEK TRAJANJA</div>
@@ -2254,13 +2254,15 @@ function renderDutyDonut(pct, activeSec, totalSec){
   if(dl) dl.textContent=fmtDur(Math.round(activeSec||0));
   if(il) il.textContent=fmtDur(Math.max(0,Math.round((totalSec||0)-(activeSec||0))));
 }
-function renderHeroSpark(buckets){
-  var el=g('ana-total-spark'); if(!el) return;
-  var maxB=Math.max(1,Math.max.apply(null,buckets));
-  el.innerHTML=buckets.map(function(v){
-    var h=Math.max(v>0?18:4,(v/maxB)*100);
-    return '<div style="height:'+h+'%"></div>';
-  }).join('');
+function renderHeroSpark(buckets, labels){
+  var el=g('ana-total-peak'); if(!el) return;
+  var maxB=Math.max.apply(null,buckets);
+  if(maxB<=0){ el.textContent='Nema ciklusa u ovom periodu'; return; }
+  var idx=buckets.indexOf(maxB);
+  var noun = maxB===1?'ciklus':(maxB<5?'ciklusa':'ciklusa');
+  var when = labels[idx] || '';
+  var periodWord = anaPeriod==='dan' ? 'sat' : anaPeriod==='tjedan' ? 'dan' : 'tjedan';
+  el.textContent = 'Najaktivniji '+periodWord+': '+when+' ('+maxB+' '+noun+')';
 }
 function renderBars2(buckets, labels){
   var maxB=Math.max(1,Math.max.apply(null,buckets));
@@ -2352,19 +2354,21 @@ function updateAna(){
   // Bar chart — v6.0 FIX: isključi legacy zapise (onTs:0, nepouzdano vrijeme prije ts-fixa)
   var timedCycles = filtered.filter(function(c){return c.onTs>0;});
   var DAYS=['Pon','Uto','Sri','Čet','Pet','Sub','Ned'];
-  var buckets=[], labels=[];
+  var buckets=[], labels=[], fullLabels=[];
   if(anaPeriod==='dan'){
-    buckets=Array(24).fill(0); labels=Array.from({length:24},function(_,h){return h%6===0?h+'h':'';});
+    buckets=Array(24).fill(0);
+    fullLabels=Array.from({length:24},function(_,h){return h+'h';});
+    labels=fullLabels.map(function(l,h){return h%6===0?l:'';});
     timedCycles.forEach(function(c){buckets[new Date(c.onTs).getHours()]++;});
   } else if(anaPeriod==='tjedan'){
-    buckets=Array(7).fill(0); labels=DAYS;
+    buckets=Array(7).fill(0); labels=DAYS; fullLabels=DAYS;
     timedCycles.forEach(function(c){buckets[(new Date(c.onTs).getDay()+6)%7]++;});
   } else {
-    buckets=Array(5).fill(0); labels=['Tj1','Tj2','Tj3','Tj4','Tj5'];
+    buckets=Array(5).fill(0); labels=['Tj1','Tj2','Tj3','Tj4','Tj5']; fullLabels=labels;
     timedCycles.forEach(function(c){var w=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));buckets[w]++;});
   }
 
-  renderHeroSpark(buckets);
+  renderHeroSpark(buckets, fullLabels);
   renderBars2(buckets, labels);
 
   // kWh po istim bucketima — trend area chart
