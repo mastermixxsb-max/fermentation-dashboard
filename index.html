@@ -2312,20 +2312,22 @@ function renderBars2(buckets, labels){
     return '<div class="bars2-wrap">'+val+bar+'<div class="bars2-lbl">'+labels[i]+'</div></div>';
   }).join('');
 }
-function renderTrendChart(vals, labels){
+function renderTrendChart(vals, labels, curIdx){
   var wrap=g('trend-svg-wrap'); if(!wrap) return;
   var W=300, H=90, pad=6;
-  var maxV=Math.max(0.01, Math.max.apply(null,vals));
-  var n=vals.length;
+  if(curIdx===undefined) curIdx=vals.length-1;
+  var activeVals = vals.slice(0, curIdx+1);
+  var maxV=Math.max(0.01, Math.max.apply(null,activeVals));
+  var n=vals.length; // puni broj slotova (7/24/5) — isti razmak kao Bars2 graf ispod
   var stepX = n>1 ? (W-2*pad)/(n-1) : 0;
-  var pts = vals.map(function(v,i){
+  var pts = activeVals.map(function(v,i){
     var x = pad + i*stepX;
     var y = H - pad - (v/maxV)*(H-2*pad);
     return [x,y];
   });
   var linePath = pts.map(function(p,i){return (i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
   var areaPath = linePath + ' L'+pts[pts.length-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
-  var maxIdx=vals.indexOf(Math.max.apply(null,vals));
+  var maxIdx=activeVals.indexOf(Math.max.apply(null,activeVals));
   var maxPt=pts[maxIdx];
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible">'+
     '<defs><linearGradient id="tgrad" x1="0%" y1="0%" x2="0%" y2="100%">'+
@@ -2338,10 +2340,10 @@ function renderTrendChart(vals, labels){
   wrap.innerHTML = svg;
   if(maxV>0.02){
     var pctX = (maxPt[0]/W*100).toFixed(1), pctY=(maxPt[1]/H*100).toFixed(1);
-    wrap.innerHTML += '<div class="trend-callout" style="left:'+pctX+'%;top:'+pctY+'%">'+vals[maxIdx].toFixed(2)+' kWh</div>';
+    wrap.innerHTML += '<div class="trend-callout" style="left:'+pctX+'%;top:'+pctY+'%">'+activeVals[maxIdx].toFixed(2)+' kWh</div>';
   }
   var xl=g('trend-xlabels'); if(xl) xl.innerHTML=labels.map(function(l){return '<span>'+l+'</span>';}).join('');
-  var tot=g('trend-total-lbl'); if(tot) tot.textContent=vals.reduce(function(a,b){return a+b;},0).toFixed(2)+' kWh';
+  var tot=g('trend-total-lbl'); if(tot) tot.textContent=activeVals.reduce(function(a,b){return a+b;},0).toFixed(2)+' kWh';
 }
 
 function updateAna(){
@@ -2414,14 +2416,13 @@ function updateAna(){
     else idx=Math.min(4,Math.floor((new Date(c.onTs).getDate()-1)/7));
     kwhBuckets[idx]+=(c.sec/3600)*kwhFactor;
   });
-  // Prikaži samo do trenutnog dana/sata/tjedna — budući periodi su uvijek 0 i lažno izgledaju kao "pad"
+  // Prikaži liniju samo do trenutnog dana/sata/tjedna, ali zadrži isti broj slotova (7/24/5)
+  // kao Bars2 graf ispod, da se dani/sati poravnaju po širini između dva grafa
   var curIdx;
   if(anaPeriod==='dan') curIdx=nowD.getHours();
   else if(anaPeriod==='tjedan') curIdx=(nowD.getDay()+6)%7;
   else curIdx=Math.min(4,Math.floor((nowD.getDate()-1)/7));
-  var kwhBucketsActive = kwhBuckets.slice(0, curIdx+1);
-  var labelsActive = labels.slice(0, curIdx+1);
-  renderTrendChart(kwhBucketsActive, labelsActive);
+  renderTrendChart(kwhBuckets, labels, curIdx);
 
   var clog=g('cycle-log');
   if(!filtered.length){clog.innerHTML='<div style="color:#3d5470">Nema ciklusa</div>';return;}
