@@ -182,7 +182,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .trend-svg-wrap{position:relative}
 .trend-callout{position:absolute;background:var(--ferm);color:#001018;font-size:9px;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-130%);pointer-events:none}
 .trend-callout:after{content:'';position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--ferm)}
-.trend-xlabels{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:2px;padding:0 2px}
+.trend-xlabels{display:flex;justify-content:space-between;font-size:10px;color:#8ba3bd;margin-top:4px;padding:0 2px}
+.trend-yaxis{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#8ba3bd;padding:2px 0}
 
 .bars2-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px}
 .bars2-hdr{font-size:10px;color:var(--muted);letter-spacing:1.5px;margin-bottom:10px}
@@ -2277,6 +2278,7 @@ function renderBars2(buckets, labels){
 }
 function renderTrendChart(vals, labels){
   var wrap=g('trend-svg-wrap'); if(!wrap) return;
+  wrap.style.paddingLeft='34px';
   var W=300, H=90, pad=6;
   var maxV=Math.max(0.01, Math.max.apply(null,vals));
   var n=vals.length;
@@ -2290,17 +2292,24 @@ function renderTrendChart(vals, labels){
   var areaPath = linePath + ' L'+pts[pts.length-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
   var maxIdx=vals.indexOf(Math.max.apply(null,vals));
   var maxPt=pts[maxIdx];
+  var midV=maxV/2;
   var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible">'+
     '<defs><linearGradient id="tgrad" x1="0%" y1="0%" x2="0%" y2="100%">'+
       '<stop offset="0%" stop-color="var(--ferm)" stop-opacity="0.35"/><stop offset="100%" stop-color="var(--ferm)" stop-opacity="0"/>'+
     '</linearGradient></defs>'+
+    '<line x1="'+pad+'" y1="'+(H-pad)+'" x2="'+(W-pad)+'" y2="'+(H-pad)+'" stroke="#172130" stroke-width="1"/>'+
+    '<line x1="'+pad+'" y1="'+(pad)+'" x2="'+(W-pad)+'" y2="'+(pad)+'" stroke="#172130" stroke-width="1" stroke-dasharray="2 3"/>'+
     '<path d="'+areaPath+'" fill="url(#tgrad)" stroke="none"/>'+
     '<path d="'+linePath+'" fill="none" stroke="var(--ferm)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
     (maxV>0.01?'<circle cx="'+maxPt[0].toFixed(1)+'" cy="'+maxPt[1].toFixed(1)+'" r="3" fill="var(--ferm)"/>':'')+
   '</svg>';
-  wrap.innerHTML = svg;
+  var yaxis='<div class="trend-yaxis"><span>'+maxV.toFixed(2)+'</span><span style="opacity:.7">'+midV.toFixed(2)+'</span><span>0.00</span></div>';
+  wrap.innerHTML = yaxis + svg;
   if(maxV>0.02){
-    var pctX = (maxPt[0]/W*100).toFixed(1), pctY=(maxPt[1]/H*100).toFixed(1);
+    var availW = wrap.clientWidth || 300;
+    var svgRenderW = availW - 34;
+    var leftPx = 34 + (maxPt[0]/W)*svgRenderW;
+    var pctX = (leftPx/availW*100).toFixed(1), pctY=(maxPt[1]/H*100).toFixed(1);
     wrap.innerHTML += '<div class="trend-callout" style="left:'+pctX+'%;top:'+pctY+'%">'+vals[maxIdx].toFixed(2)+' kWh</div>';
   }
   var xl=g('trend-xlabels'); if(xl) xl.innerHTML=labels.map(function(l){return '<span>'+l+'</span>';}).join('');
@@ -2354,7 +2363,7 @@ function updateAna(){
   var buckets=[], labels=[], fullLabels=[];
   if(anaPeriod==='dan'){
     buckets=Array(24).fill(0);
-    fullLabels=Array.from({length:24},function(_,h){var h2=(h+1)%24;return String(h).padStart(2,'0')+':00-'+String(h2).padStart(2,'0')+':00';});
+    fullLabels=Array.from({length:24},function(_,h){return h+'h';});
     labels=fullLabels.map(function(l,h){return h%6===0?l:'';});
     timedCycles.forEach(function(c){buckets[new Date(c.onTs).getHours()]++;});
   } else if(anaPeriod==='tjedan'){
