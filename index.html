@@ -2315,7 +2315,11 @@ function updateAna(){
   // v6.0 FIX: 'mjesec' je sad pravi kalendarski mjesec (1. u mjesecu 00:00 → sad),
   // ne "zadnjih 30 dana". Ciklusi imaju pravi unix onTs od v6.0 ts-fixa.
   var monthCycles = cycles.filter(function(c){return c.onTs>0 && c.onTs>=monthStartMs;});
-  var filtered = anaPeriod==='mjesec' ? monthCycles : cycles; // za total/avg/max/duty prikaz
+  // FIX (v7.2): 'dan' i 'tjedan' su do sad koristili SVE cikluse ikad (bez vremenskog filtera),
+  // pa je npr. Duty% i 'Aktivan' vrijeme prikazivalo ukupno-od-pocetka umjesto stvarnog danas/tjedan.
+  var filtered;
+  if(anaPeriod==='mjesec') filtered = monthCycles;
+  else filtered = cycles.filter(function(c){return c.onTs>0 && c.onTs>=now-periodMs[anaPeriod];});
   var total=filtered.length;
   var avgDur=total?Math.round(filtered.reduce(function(a,b){return a+b.sec;},0)/total):0;
   var maxDur=total?Math.max.apply(null,filtered.map(function(c){return c.sec;})):0;
