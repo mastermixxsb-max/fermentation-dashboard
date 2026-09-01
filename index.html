@@ -495,14 +495,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
 <!-- LOG -->
 <div id="pane-log" class="pane">
-  <div class="logstat-row" id="log-stat-row">
-    <div class="logstat"><div class="logstat-v" id="ls-keezer" style="color:var(--keezer)">-</div><div class="logstat-l">KEEZER DANAS</div></div>
-    <div class="logstat"><div class="logstat-v" id="ls-ferm" style="color:var(--ferm)">-</div><div class="logstat-l">FERM DANAS</div></div>
-    <div class="logstat"><div class="logstat-v" id="ls-sys" style="color:var(--warn)">-</div><div class="logstat-l">SUSTAV DANAS</div></div>
+  <!-- Hero kartice -->
+  <div class="hero-row">
+    <div class="hero-card c1">
+      <div class="hero-l">DOGAĐAJA DANAS</div>
+      <div class="hero-v" id="log-total">-</div>
+      <div style="margin-top:9px;font-size:10px;color:rgba(255,255,255,.65)" id="log-peak"></div>
+    </div>
+    <div class="hero-card c2">
+      <div class="hero-l">NAJAKTIVNIJE</div>
+      <div class="hero-v" id="log-top-sec" style="font-size:20px">-</div>
+      <div style="margin-top:9px;font-size:10px;color:rgba(255,255,255,.65)" id="log-top-sec-sub"></div>
+    </div>
   </div>
+
+  <!-- Raspodjela donut -->
+  <div class="donut-card">
+    <div class="donut-stage" id="log-donut-wrap"></div>
+    <div class="donut-legend">
+      <div class="dleg-row"><span class="dleg-dot" style="background:var(--keezer)"></span><span class="dleg-lbl">Keezer</span><span class="dleg-val" id="ls-keezer" style="color:var(--keezer)">-</span></div>
+      <div class="dleg-row"><span class="dleg-dot" style="background:var(--ferm)"></span><span class="dleg-lbl">Ferm</span><span class="dleg-val" id="ls-ferm" style="color:var(--ferm)">-</span></div>
+      <div class="dleg-row"><span class="dleg-dot" style="background:var(--warn)"></span><span class="dleg-lbl">Sustav</span><span class="dleg-val" id="ls-sys" style="color:var(--warn)">-</span></div>
+    </div>
+  </div>
+
+  <!-- Aktivnost po satu -->
+  <div class="bars2-card">
+    <div class="bars2-hdr">AKTIVNOST DANAS (po satu)</div>
+    <div class="bars2-chart" id="log-hour-bars"></div>
+  </div>
+
+  <!-- Detaljan zapis -->
   <div class="log-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:9px;color:var(--muted);letter-spacing:2px" id="log-cnt">LOG</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:2px" id="log-cnt">DETALJAN ZAPIS</span>
       <button class="hbtn" onclick="clearLog()">Obriši</button>
     </div>
     <div style="display:flex;gap:5px;margin-top:10px;overflow-x:auto;padding-bottom:2px" id="log-filters">
@@ -2469,16 +2495,90 @@ function renderLogStats(){
   var todayStart = new Date(); todayStart.setHours(0,0,0,0);
   var t0 = todayStart.getTime();
   var kz=0, fm=0, sy=0;
+  var hourBuckets = Array(24).fill(0);
   relayLog.forEach(function(e){
     if(e.ts<t0) return;
     if(e.sec==='Keezer') kz++;
     else if(e.sec==='Ferm') fm++;
     else if(e.sec==='SYS') sy++;
+    hourBuckets[new Date(e.ts).getHours()]++;
   });
   var lsK=g('ls-keezer'), lsF=g('ls-ferm'), lsS=g('ls-sys');
   if(lsK) lsK.textContent=kz;
   if(lsF) lsF.textContent=fm;
   if(lsS) lsS.textContent=sy;
+
+  var total=kz+fm+sy;
+  var totEl=g('log-total'); if(totEl) totEl.textContent=total||'-';
+
+  var peakEl=g('log-peak');
+  if(peakEl){
+    var maxH=Math.max.apply(null,hourBuckets);
+    if(maxH<=0){ peakEl.textContent='Nema događaja danas'; }
+    else{
+      var hIdx=hourBuckets.indexOf(maxH);
+      var h2=(hIdx+1)%24;
+      peakEl.textContent='Najaktivniji sat: '+String(hIdx).padStart(2,'0')+':00-'+String(h2).padStart(2,'0')+':00 ('+maxH+')';
+    }
+  }
+
+  var cats=[{n:'Keezer',v:kz,c:'var(--keezer)'},{n:'Ferm',v:fm,c:'var(--ferm)'},{n:'Sustav',v:sy,c:'var(--warn)'}];
+  cats.sort(function(a,b){return b.v-a.v;});
+  var topEl=g('log-top-sec'), topSubEl=g('log-top-sec-sub');
+  if(topEl){
+    if(total<=0){ topEl.textContent='-'; if(topSubEl) topSubEl.textContent=''; }
+    else{
+      topEl.textContent=cats[0].n;
+      if(topSubEl) topSubEl.textContent=cats[0].v+' od '+total+' događaja ('+Math.round(cats[0].v/total*100)+'%)';
+    }
+  }
+
+  renderLogDonut(kz, fm, sy);
+  renderLogHourBars(hourBuckets);
+}
+function renderLogDonut(kz, fm, sy){
+  var wrap=g('log-donut-wrap'); if(!wrap) return;
+  var total=kz+fm+sy;
+  var r=44, cx=52, cy=52, C=2*Math.PI*r;
+  if(total<=0){
+    wrap.innerHTML='<svg viewBox="0 0 104 104" style="width:100%;height:100%"><circle cx="52" cy="52" r="'+r+'" fill="none" stroke="#141f2c" stroke-width="12"/></svg>'+
+      '<div class="donut-num"><b style="font-size:12px">Nema</b><span>PODATAKA</span></div>';
+    return;
+  }
+  var segs=[{v:kz,c:'var(--keezer)'},{v:fm,c:'var(--ferm)'},{v:sy,c:'var(--warn)'}];
+  var offset=0, arcs='';
+  segs.forEach(function(s){
+    if(s.v<=0) return;
+    var frac=s.v/total, len=C*frac;
+    arcs+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.c+'" stroke-width="12" '+
+      'stroke-dasharray="'+len.toFixed(1)+' '+(C-len).toFixed(1)+'" stroke-dashoffset="'+(-offset).toFixed(1)+'"/>';
+    offset+=len;
+  });
+  wrap.innerHTML='<svg viewBox="0 0 104 104" style="width:100%;height:100%;transform:rotate(-90deg);display:block">'+
+    '<circle cx="52" cy="52" r="'+r+'" fill="none" stroke="#141f2c" stroke-width="12"/>'+arcs+'</svg>'+
+    '<div class="donut-num"><b>'+total+'</b><span>UKUPNO</span></div>';
+}
+function renderLogHourBars(buckets){
+  var bars=g('log-hour-bars'); if(!bars) return;
+  var maxB=Math.max(1,Math.max.apply(null,buckets));
+  var maxIdx=buckets.indexOf(maxB);
+  bars.innerHTML=buckets.map(function(cnt,h){
+    var pct=Math.max(cnt>0?8:2,(cnt/maxB)*84);
+    var isMax = cnt>0 && h===maxIdx;
+    var val = cnt>0 ? '<div class="bars2-val" style="color:'+(isMax?'var(--ferm)':'#c8d6e5')+'">'+cnt+'</div>' : '';
+    var lbl = h%6===0 ? h+'h' : '';
+    var dividers='';
+    if(cnt>1){
+      for(var s=1;s<cnt;s++){
+        var pos=(s/cnt*100).toFixed(1);
+        dividers += '<div style="position:absolute;left:0;right:0;bottom:'+pos+'%;height:1px;background:#060a0f"></div>';
+      }
+    }
+    var bar = cnt>0
+      ? '<div class="bars2-bar" style="height:'+pct+'%;position:relative;background:linear-gradient(180deg,'+(isMax?'var(--ferm),var(--keezer)':'#00e0b0,var(--keezer)')+')">'+dividers+'</div>'
+      : '<div class="bars2-bar" style="height:'+pct+'%;background:#172130"></div>';
+    return '<div class="bars2-wrap">'+val+bar+'<div class="bars2-lbl">'+lbl+'</div></div>';
+  }).join('');
 }
 
 // ── CSV Export ───────────────────────────────────────────────────
