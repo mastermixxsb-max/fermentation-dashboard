@@ -42,7 +42,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .tabs{display:flex;gap:2px;padding:10px 16px 0;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tab{padding:7px 14px;border-radius:10px 10px 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:1px;white-space:nowrap;flex-shrink:0}
 .tab.active{border-color:var(--border);border-bottom:1px solid var(--bg);background:var(--bg);color:var(--text)}
-.pane{display:none;padding:14px;animation:fadeIn .3s ease}
+.pane{display:none;padding:14px;animation:fadeIn .3s ease;max-width:640px;margin:0 auto;box-sizing:border-box}
 .pane.active{display:block}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:640px){.grid2{grid-template-columns:1fr}}
