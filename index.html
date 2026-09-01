@@ -582,7 +582,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 
   <!-- Bar chart uključivanja s max-callout -->
   <div class="bars2-card">
-    <div class="bars2-hdr">UKLJUČIVANJA KEEZERA</div>
+    <div class="bars2-hdr" id="bars2-hdr-lbl">CIKLUSA PO SATU</div>
     <div class="bars2-chart" id="ana-bars"></div>
   </div>
 
@@ -2265,6 +2265,10 @@ function renderHeroSpark(buckets, labels){
   el.textContent = 'Najaktivniji '+periodWord+': '+when+' ('+maxB+' '+noun+')';
 }
 function renderBars2(buckets, labels){
+  var hdr=g('bars2-hdr-lbl');
+  if(hdr) hdr.textContent = anaPeriod==='dan' ? 'CIKLUSA PO SATU (zbroj = '+buckets.reduce(function(a,b){return a+b;},0)+')'
+                            : anaPeriod==='tjedan' ? 'CIKLUSA PO DANU (zbroj = '+buckets.reduce(function(a,b){return a+b;},0)+')'
+                            : 'CIKLUSA PO TJEDNU (zbroj = '+buckets.reduce(function(a,b){return a+b;},0)+')';
   var maxB=Math.max(1,Math.max.apply(null,buckets));
   var maxIdx=buckets.indexOf(maxB);
   var bars=g('ana-bars'); if(!bars) return;
