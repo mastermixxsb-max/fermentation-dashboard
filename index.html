@@ -883,6 +883,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
       <div class="set-row"><div class="set-lbl">Gap cutoff</div><div id="h-gapcutoff" class="cval">--</div></div>
     </div>
 
+    <div class="set-card">
+      <div class="set-title">DIJAGNOSTIKA SONDI</div>
+      <div class="set-row"><div class="set-lbl">Ferm — odbačeno danas</div><div id="h-ferm-glitch" class="cval">--</div></div>
+      <div class="set-row"><div class="set-lbl">Keezer — odbačeno danas</div><div id="h-keezer-glitch" class="cval">--</div></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:6px">Broji se svako odbačeno očitanje (skok &gt;5°C od zadnje vrijednosti — vjerojatno labav kontakt). 3x zaredom = Pushover alarm.</div>
+    </div>
+
     <div class="set-card" style="grid-column:1/-1">
       <div class="set-title">DUTY-CYCLE TREND</div>
       <div class="set-row"><div class="set-lbl">Zadnjih 7 dana</div><div id="h-duty-recent" class="cval">--</div></div>
@@ -2682,6 +2689,15 @@ async function refreshHealth(){
   g('h-probe2').textContent = modeLbl;
   g('h-gapcutoff').textContent = s.gapCutoffActive?'AKTIVAN (LATCH!)':'neaktivan';
   g('h-gapcutoff').style.color = s.gapCutoffActive?'var(--danger)':'var(--ok)';
+
+  // v7.2 — dijagnostika sondi (spike-rejection brojaci, vidi read_temps() u firmveru)
+  var fmtGlitchTs = function(ts){ return ts?new Date(ts*1000).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'}):null; };
+  var fg = s.fermGlitches||0, kg = s.keezerGlitches||0;
+  var fgTs = fmtGlitchTs(s.lastFermGlitchTs), kgTs = fmtGlitchTs(s.lastKeezerGlitchTs);
+  g('h-ferm-glitch').textContent = fg + (fgTs?(' (zadnje '+fgTs+')'):'');
+  g('h-ferm-glitch').style.color = fg===0?'var(--ok)':fg<3?'var(--warn)':'var(--danger)';
+  g('h-keezer-glitch').textContent = kg + (kgTs?(' (zadnje '+kgTs+')'):'');
+  g('h-keezer-glitch').style.color = kg===0?'var(--ok)':kg<3?'var(--warn)':'var(--danger)';
 
   // v6.2 — Duty-cycle trend (rani signal za curenje rashladnog sredstva/brtve/ventilatora)
   var dutyTrend = computeDutyTrend();
