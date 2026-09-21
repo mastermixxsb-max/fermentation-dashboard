@@ -1,4 +1,4 @@
-const CACHE = 'ferm-v4.23';
+const CACHE = 'ferm-v4.24';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 // Install — predcachiramo asete
