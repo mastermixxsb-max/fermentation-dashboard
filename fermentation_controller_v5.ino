@@ -126,6 +126,8 @@ uint8_t  i2cFailCount = 0;
 // v6.2 — dnevni digest brojaci
 uint16_t daily_wifi_reconnects = 0;
 uint16_t daily_i2c_recoveries = 0;
+uint16_t daily_ferm_glitches = 0, daily_keezer_glitches = 0; // v7.2 — dijagnostika sondi
+unsigned long last_ferm_glitch_ts = 0, last_keezer_glitch_ts = 0;
 
 uint32_t temp_log_head = 0, relay_log_head = 0;
 uint32_t ferm_rec_count = 0, kstat_head = 0;
@@ -417,6 +419,10 @@ void fb_send_sensors() {
                 ",\"r2\":" + String(r2_state?"true":"false") +
                 ",\"uptime\":" + String(millis()/1000) +
                 ",\"ip\":\"" + WiFi.localIP().toString() + "\"" +
+                ",\"fermGlitches\":" + String(daily_ferm_glitches) +
+                ",\"keezerGlitches\":" + String(daily_keezer_glitches) +
+                ",\"lastFermGlitchTs\":" + String(last_ferm_glitch_ts) +
+                ",\"lastKeezerGlitchTs\":" + String(last_keezer_glitch_ts) +
                 ",\"heartbeat\":" + String((unsigned long)time(nullptr)) + "}";
   fb_put("/sensors", body);
 }
@@ -502,6 +508,8 @@ void read_temps() {
   if (ferm_ok) {
     if (!isnan(ferm_temp_last_valid) && fabs(t0 - ferm_temp_last_valid) > TEMP_MAX_DELTA_C) {
       ferm_glitch_count++;
+      daily_ferm_glitches++;
+      last_ferm_glitch_ts = (unsigned long)time(nullptr);
       Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid);
       ferm_ok = false;
     } else {
@@ -512,6 +520,8 @@ void read_temps() {
   if (keezer_ok) {
     if (!isnan(keezer_temp_last_valid) && fabs(t1 - keezer_temp_last_valid) > TEMP_MAX_DELTA_C) {
       keezer_glitch_count++;
+      daily_keezer_glitches++;
+      last_keezer_glitch_ts = (unsigned long)time(nullptr);
       Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid);
       keezer_ok = false;
     } else {
@@ -1261,9 +1271,9 @@ void loop() {
         float kwh = (today_on_sec/3600.0)*0.075;
         char msg[220];
         snprintf(msg, sizeof(msg),
-          "Keezer: %luh %lum, %u ciklusa, ~%.2f kWh. WiFi reconnect: %u. I2C recovery: %u.",
+          "Keezer: %luh %lum, %u ciklusa, ~%.2f kWh. WiFi reconnect: %u. I2C recovery: %u. Sonde odbacene: F%u/K%u.",
           today_on_sec/3600, (today_on_sec%3600)/60, today_cycles, kwh,
-          daily_wifi_reconnects, daily_i2c_recoveries);
+          daily_wifi_reconnects, daily_i2c_recoveries, daily_ferm_glitches, daily_keezer_glitches);
         String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
                          "\",\"title\":\"📊 Dnevni sažetak\",\"message\":\"" + String(msg) +
                          "\",\"priority\":-1}"; // -1 = tiha dostava, bez zvuka/vibracije
@@ -1273,6 +1283,7 @@ void loop() {
       }
       daily_wifi_reconnects = 0;
       daily_i2c_recoveries = 0;
+      daily_ferm_glitches = 0; daily_keezer_glitches = 0;
       keezer_stat_save();
     }
   }
