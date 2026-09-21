@@ -17,7 +17,7 @@
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v7.3"
+#define FW_VERSION "v7.4"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -117,6 +117,7 @@ bool     ferm_ok = false, keezer_ok = false;
 // (npr. -47.9°C) koji prolazi obican -50/85 range-check ali nije stvarna temp.
 float    ferm_temp_last_valid = NAN, keezer_temp_last_valid = NAN;
 uint8_t  ferm_glitch_count = 0, keezer_glitch_count = 0;
+float    ferm_last_rejected = NAN, keezer_last_rejected = NAN; // v7.4 — self-heal mora provjeriti da su odbijena ocitanja i MEDUSOBNO slicna
 const float TEMP_MAX_DELTA_C = 5.0; // veci skok izmedju dva ocitanja = odbaci
 bool     r1_state = false, r2_state = false;
 bool     wifi_ok = false, flash_ok = false;
@@ -507,41 +508,48 @@ void read_temps() {
   // od zadnje prihvacene vrijednosti (labav kontakt na sondi, ne stvarna promjena)
   if (ferm_ok) {
     if (!isnan(ferm_temp_last_valid) && fabs(t0 - ferm_temp_last_valid) > TEMP_MAX_DELTA_C) {
-      ferm_glitch_count++;
+      // v7.4 — self-heal smije brojati SAMO ako se ovo odbijeno ocitanje slaze
+      // s prethodnim odbijenim (dokaz da je konzistentno nova stvarna vrijednost,
+      // ne samo slucajan sum koji bi inace nasumicno "prosao" nakon 3 pokusaja)
+      bool consistent = !isnan(ferm_last_rejected) && fabs(t0 - ferm_last_rejected) <= 2.0;
+      ferm_glitch_count = consistent ? (ferm_glitch_count+1) : 1;
+      ferm_last_rejected = t0;
       daily_ferm_glitches++;
       last_ferm_glitch_ts = (unsigned long)time(nullptr);
-      Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid);
+      Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f, streak=%u)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid, ferm_glitch_count);
       ferm_ok = false;
-      // v7.3 — samo-oporavak: ako 3x zaredom odbijemo, ali su ta 3 ocitanja
-      // medusobno slicna, to znaci da je NOVA vrijednost stvarna a stara baza
-      // kriva (npr. los prvi read odmah nakon boota) — prihvati novu bazu.
       if (ferm_glitch_count >= 3) {
-        Serial.println("[DS18B20] Ferm — 3x zaredom, prihvacam novu bazu (self-heal)");
+        Serial.println("[DS18B20] Ferm — 3x zaredom KONZISTENTNO, prihvacam novu bazu (self-heal)");
         ferm_ok = true;
         ferm_glitch_count = 0;
+        ferm_last_rejected = NAN;
         ferm_temp_last_valid = t0;
       }
     } else {
       ferm_glitch_count = 0;
+      ferm_last_rejected = NAN;
       ferm_temp_last_valid = t0;
     }
   }
   if (keezer_ok) {
     if (!isnan(keezer_temp_last_valid) && fabs(t1 - keezer_temp_last_valid) > TEMP_MAX_DELTA_C) {
-      keezer_glitch_count++;
+      bool consistent = !isnan(keezer_last_rejected) && fabs(t1 - keezer_last_rejected) <= 2.0;
+      keezer_glitch_count = consistent ? (keezer_glitch_count+1) : 1;
+      keezer_last_rejected = t1;
       daily_keezer_glitches++;
       last_keezer_glitch_ts = (unsigned long)time(nullptr);
-      Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid);
+      Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f, streak=%u)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid, keezer_glitch_count);
       keezer_ok = false;
-      // v7.3 — isti samo-oporavak kao za ferm sondu
       if (keezer_glitch_count >= 3) {
-        Serial.println("[DS18B20] Keezer — 3x zaredom, prihvacam novu bazu (self-heal)");
+        Serial.println("[DS18B20] Keezer — 3x zaredom KONZISTENTNO, prihvacam novu bazu (self-heal)");
         keezer_ok = true;
         keezer_glitch_count = 0;
+        keezer_last_rejected = NAN;
         keezer_temp_last_valid = t1;
       }
     } else {
       keezer_glitch_count = 0;
+      keezer_last_rejected = NAN;
       keezer_temp_last_valid = t1;
     }
   }
