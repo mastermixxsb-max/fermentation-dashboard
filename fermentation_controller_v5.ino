@@ -512,6 +512,15 @@ void read_temps() {
       last_ferm_glitch_ts = (unsigned long)time(nullptr);
       Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid);
       ferm_ok = false;
+      // v7.3 — samo-oporavak: ako 3x zaredom odbijemo, ali su ta 3 ocitanja
+      // medusobno slicna, to znaci da je NOVA vrijednost stvarna a stara baza
+      // kriva (npr. los prvi read odmah nakon boota) — prihvati novu bazu.
+      if (ferm_glitch_count >= 3) {
+        Serial.println("[DS18B20] Ferm — 3x zaredom, prihvacam novu bazu (self-heal)");
+        ferm_ok = true;
+        ferm_glitch_count = 0;
+        ferm_temp_last_valid = t0;
+      }
     } else {
       ferm_glitch_count = 0;
       ferm_temp_last_valid = t0;
@@ -524,6 +533,13 @@ void read_temps() {
       last_keezer_glitch_ts = (unsigned long)time(nullptr);
       Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid);
       keezer_ok = false;
+      // v7.3 — isti samo-oporavak kao za ferm sondu
+      if (keezer_glitch_count >= 3) {
+        Serial.println("[DS18B20] Keezer — 3x zaredom, prihvacam novu bazu (self-heal)");
+        keezer_ok = true;
+        keezer_glitch_count = 0;
+        keezer_temp_last_valid = t1;
+      }
     } else {
       keezer_glitch_count = 0;
       keezer_temp_last_valid = t1;
