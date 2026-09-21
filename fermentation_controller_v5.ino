@@ -17,7 +17,7 @@
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v7.4"
+#define FW_VERSION "v7.0"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -113,12 +113,6 @@ struct KeezerStat {
 Settings cfg;
 float    ferm_temp = 0.0, keezer_temp = 0.0;
 bool     ferm_ok = false, keezer_ok = false;
-// v7.1 — spike-rejection: labav kontakt na sondi zna dati fizicki nemoguc skok
-// (npr. -47.9°C) koji prolazi obican -50/85 range-check ali nije stvarna temp.
-float    ferm_temp_last_valid = NAN, keezer_temp_last_valid = NAN;
-uint8_t  ferm_glitch_count = 0, keezer_glitch_count = 0;
-float    ferm_last_rejected = NAN, keezer_last_rejected = NAN; // v7.4 — self-heal mora provjeriti da su odbijena ocitanja i MEDUSOBNO slicna
-const float TEMP_MAX_DELTA_C = 5.0; // veci skok izmedju dva ocitanja = odbaci
 bool     r1_state = false, r2_state = false;
 bool     wifi_ok = false, flash_ok = false;
 bool     oled_ok = false;
@@ -127,8 +121,6 @@ uint8_t  i2cFailCount = 0;
 // v6.2 — dnevni digest brojaci
 uint16_t daily_wifi_reconnects = 0;
 uint16_t daily_i2c_recoveries = 0;
-uint16_t daily_ferm_glitches = 0, daily_keezer_glitches = 0; // v7.2 — dijagnostika sondi
-unsigned long last_ferm_glitch_ts = 0, last_keezer_glitch_ts = 0;
 
 uint32_t temp_log_head = 0, relay_log_head = 0;
 uint32_t ferm_rec_count = 0, kstat_head = 0;
@@ -420,10 +412,6 @@ void fb_send_sensors() {
                 ",\"r2\":" + String(r2_state?"true":"false") +
                 ",\"uptime\":" + String(millis()/1000) +
                 ",\"ip\":\"" + WiFi.localIP().toString() + "\"" +
-                ",\"fermGlitches\":" + String(daily_ferm_glitches) +
-                ",\"keezerGlitches\":" + String(daily_keezer_glitches) +
-                ",\"lastFermGlitchTs\":" + String(last_ferm_glitch_ts) +
-                ",\"lastKeezerGlitchTs\":" + String(last_keezer_glitch_ts) +
                 ",\"heartbeat\":" + String((unsigned long)time(nullptr)) + "}";
   fb_put("/sensors", body);
 }
@@ -503,66 +491,6 @@ void read_temps() {
   float t1 = sensors.getTempC(addr_keezer);
   ferm_ok   = (t0 > -50 && t0 < 85);
   keezer_ok = (t1 > -50 && t1 < 85);
-
-  // v7.1 — spike-rejection: odbaci ocitanje ako fizicki nemoguce odstupa
-  // od zadnje prihvacene vrijednosti (labav kontakt na sondi, ne stvarna promjena)
-  if (ferm_ok) {
-    if (!isnan(ferm_temp_last_valid) && fabs(t0 - ferm_temp_last_valid) > TEMP_MAX_DELTA_C) {
-      // v7.4 — self-heal smije brojati SAMO ako se ovo odbijeno ocitanje slaze
-      // s prethodnim odbijenim (dokaz da je konzistentno nova stvarna vrijednost,
-      // ne samo slucajan sum koji bi inace nasumicno "prosao" nakon 3 pokusaja)
-      bool consistent = !isnan(ferm_last_rejected) && fabs(t0 - ferm_last_rejected) <= 2.0;
-      ferm_glitch_count = consistent ? (ferm_glitch_count+1) : 1;
-      ferm_last_rejected = t0;
-      daily_ferm_glitches++;
-      last_ferm_glitch_ts = (unsigned long)time(nullptr);
-      Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f, streak=%u)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid, ferm_glitch_count);
-      ferm_ok = false;
-      if (ferm_glitch_count >= 3) {
-        Serial.println("[DS18B20] Ferm — 3x zaredom KONZISTENTNO, prihvacam novu bazu (self-heal)");
-        ferm_ok = true;
-        ferm_glitch_count = 0;
-        ferm_last_rejected = NAN;
-        ferm_temp_last_valid = t0;
-      }
-    } else {
-      ferm_glitch_count = 0;
-      ferm_last_rejected = NAN;
-      ferm_temp_last_valid = t0;
-    }
-  }
-  if (keezer_ok) {
-    if (!isnan(keezer_temp_last_valid) && fabs(t1 - keezer_temp_last_valid) > TEMP_MAX_DELTA_C) {
-      bool consistent = !isnan(keezer_last_rejected) && fabs(t1 - keezer_last_rejected) <= 2.0;
-      keezer_glitch_count = consistent ? (keezer_glitch_count+1) : 1;
-      keezer_last_rejected = t1;
-      daily_keezer_glitches++;
-      last_keezer_glitch_ts = (unsigned long)time(nullptr);
-      Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f, streak=%u)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid, keezer_glitch_count);
-      keezer_ok = false;
-      if (keezer_glitch_count >= 3) {
-        Serial.println("[DS18B20] Keezer — 3x zaredom KONZISTENTNO, prihvacam novu bazu (self-heal)");
-        keezer_ok = true;
-        keezer_glitch_count = 0;
-        keezer_last_rejected = NAN;
-        keezer_temp_last_valid = t1;
-      }
-    } else {
-      keezer_glitch_count = 0;
-      keezer_last_rejected = NAN;
-      keezer_temp_last_valid = t1;
-    }
-  }
-  // 3x zaredom odbaceno = vise nije pojedinacni glitch nego stvaran problem sa sondom
-  if ((ferm_glitch_count >= 3 || keezer_glitch_count >= 3) && wifi_ok && strlen(po_token) > 5) {
-    char msg[160];
-    const char* which = (keezer_glitch_count >= 3) ? "Keezer" : "Ferm";
-    snprintf(msg, sizeof(msg), "{\"token\":\"%s\",\"user\":\"%s\",\"title\":\"\\u26a0\\ufe0f %s sonda\",\"message\":\"3x odbaceno ocitanje zaredom - provjeri kontakt sonde!\",\"priority\":1}", po_token, po_user, which);
-    HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
-    http.addHeader("Content-Type","application/json"); http.POST(String(msg)); http.end();
-    ferm_glitch_count = 0; keezer_glitch_count = 0; // ne spamaj svaki ciklus
-  }
-
   if (ferm_ok)   ferm_temp   = t0;
   if (keezer_ok) keezer_temp = t1;
   if (ferm_session_active && ferm_ok) {
@@ -1295,9 +1223,9 @@ void loop() {
         float kwh = (today_on_sec/3600.0)*0.075;
         char msg[220];
         snprintf(msg, sizeof(msg),
-          "Keezer: %luh %lum, %u ciklusa, ~%.2f kWh. WiFi reconnect: %u. I2C recovery: %u. Sonde odbacene: F%u/K%u.",
+          "Keezer: %luh %lum, %u ciklusa, ~%.2f kWh. WiFi reconnect: %u. I2C recovery: %u.",
           today_on_sec/3600, (today_on_sec%3600)/60, today_cycles, kwh,
-          daily_wifi_reconnects, daily_i2c_recoveries, daily_ferm_glitches, daily_keezer_glitches);
+          daily_wifi_reconnects, daily_i2c_recoveries);
         String po_body = "{\"token\":\"" + String(po_token) + "\",\"user\":\"" + String(po_user) +
                          "\",\"title\":\"📊 Dnevni sažetak\",\"message\":\"" + String(msg) +
                          "\",\"priority\":-1}"; // -1 = tiha dostava, bez zvuka/vibracije
@@ -1307,7 +1235,6 @@ void loop() {
       }
       daily_wifi_reconnects = 0;
       daily_i2c_recoveries = 0;
-      daily_ferm_glitches = 0; daily_keezer_glitches = 0;
       keezer_stat_save();
     }
   }
