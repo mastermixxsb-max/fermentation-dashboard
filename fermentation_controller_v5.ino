@@ -113,6 +113,11 @@ struct KeezerStat {
 Settings cfg;
 float    ferm_temp = 0.0, keezer_temp = 0.0;
 bool     ferm_ok = false, keezer_ok = false;
+// v7.1 — spike-rejection: labav kontakt na sondi zna dati fizicki nemoguc skok
+// (npr. -47.9°C) koji prolazi obican -50/85 range-check ali nije stvarna temp.
+float    ferm_temp_last_valid = NAN, keezer_temp_last_valid = NAN;
+uint8_t  ferm_glitch_count = 0, keezer_glitch_count = 0;
+const float TEMP_MAX_DELTA_C = 5.0; // veci skok izmedju dva ocitanja = odbaci
 bool     r1_state = false, r2_state = false;
 bool     wifi_ok = false, flash_ok = false;
 bool     oled_ok = false;
@@ -491,6 +496,39 @@ void read_temps() {
   float t1 = sensors.getTempC(addr_keezer);
   ferm_ok   = (t0 > -50 && t0 < 85);
   keezer_ok = (t1 > -50 && t1 < 85);
+
+  // v7.1 — spike-rejection: odbaci ocitanje ako fizicki nemoguce odstupa
+  // od zadnje prihvacene vrijednosti (labav kontakt na sondi, ne stvarna promjena)
+  if (ferm_ok) {
+    if (!isnan(ferm_temp_last_valid) && fabs(t0 - ferm_temp_last_valid) > TEMP_MAX_DELTA_C) {
+      ferm_glitch_count++;
+      Serial.printf("[DS18B20] Ferm sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t0, t0-ferm_temp_last_valid, ferm_temp_last_valid);
+      ferm_ok = false;
+    } else {
+      ferm_glitch_count = 0;
+      ferm_temp_last_valid = t0;
+    }
+  }
+  if (keezer_ok) {
+    if (!isnan(keezer_temp_last_valid) && fabs(t1 - keezer_temp_last_valid) > TEMP_MAX_DELTA_C) {
+      keezer_glitch_count++;
+      Serial.printf("[DS18B20] Keezer sonda ODBACENA: %.2f (skok %.2f od zadnje %.2f)\n", t1, t1-keezer_temp_last_valid, keezer_temp_last_valid);
+      keezer_ok = false;
+    } else {
+      keezer_glitch_count = 0;
+      keezer_temp_last_valid = t1;
+    }
+  }
+  // 3x zaredom odbaceno = vise nije pojedinacni glitch nego stvaran problem sa sondom
+  if ((ferm_glitch_count >= 3 || keezer_glitch_count >= 3) && wifi_ok && strlen(po_token) > 5) {
+    char msg[160];
+    const char* which = (keezer_glitch_count >= 3) ? "Keezer" : "Ferm";
+    snprintf(msg, sizeof(msg), "{\"token\":\"%s\",\"user\":\"%s\",\"title\":\"\\u26a0\\ufe0f %s sonda\",\"message\":\"3x odbaceno ocitanje zaredom - provjeri kontakt sonde!\",\"priority\":1}", po_token, po_user, which);
+    HTTPClient http; http.begin("https://api.pushover.net/1/messages.json");
+    http.addHeader("Content-Type","application/json"); http.POST(String(msg)); http.end();
+    ferm_glitch_count = 0; keezer_glitch_count = 0; // ne spamaj svaki ciklus
+  }
+
   if (ferm_ok)   ferm_temp   = t0;
   if (keezer_ok) keezer_temp = t1;
   if (ferm_session_active && ferm_ok) {
