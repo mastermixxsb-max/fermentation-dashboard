@@ -489,6 +489,7 @@ void read_temps() {
   delay(750);
   float t0 = sensors.getTempC(addr_ferm);
   float t1 = sensors.getTempC(addr_keezer);
+  Serial.printf("[DS18B20] raw: ferm=%.2f keezer=%.2f\n", t0, t1);
   ferm_ok   = (t0 > -50 && t0 < 85);
   keezer_ok = (t1 > -50 && t1 < 85);
   if (ferm_ok)   ferm_temp   = t0;
@@ -911,7 +912,7 @@ void loop() {
   unsigned long now = millis();
 
   // Temperature svake 3s
-  if (now - last_temp_read > 3000) {
+  if (now - last_temp_read > 15000) {
     read_temps();
     last_temp_read = now;
   }
