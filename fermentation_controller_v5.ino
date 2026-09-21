@@ -725,7 +725,7 @@ void setup() {
   // WiFi — proba poznate mreže
   display.setCursor(0,20); display.println("WiFi spajam.."); display.display();
 
-  const char* known_ssids[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
+  const char* known_ssids[] = {"Dvoriste", "Dvoriste_EXT", "Smart_Home"};
   const char* known_pass    = "qHx1erkt";
   bool manual_connected = false;
   // v6.2 — skeniraj i spoji se na NAJJAČU poznatu mrežu, ne prvu koja radi
@@ -1105,7 +1105,7 @@ void loop() {
   if (!wifi_ok && (now - last_wifi_check > 30000)) {
     last_wifi_check = now;
     // v6.2 — skeniraj i spoji se na NAJJAČU poznatu mrežu, ne prvu koja radi
-    const char* known[] = {"Dvoriste", "Dvoriste_EXT", "SmartHome"};
+    const char* known[] = {"Dvoriste", "Dvoriste_EXT", "Smart_Home"};
     const int knownCount = 3;
     Serial.println("[WiFi] Skeniram dostupne mreze...");
     int n = WiFi.scanNetworks();
