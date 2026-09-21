@@ -17,7 +17,7 @@
 //  ESP32 + DS18B20 + W25Q64 SPI Flash + Firebase + OTA
 // ============================================================
 
-#define FW_VERSION "v7.0"
+#define FW_VERSION "v7.3"
 
 #include <Arduino.h>
 #include <WiFi.h>
